@@ -1,1 +1,1 @@
-# Nano-Cores
+🔷 O Cerulean: Nano Cores é a ramificação (branch) tática do ecossistema CWS, desenvolvida inteiramente em Excel / VBA. Construído com princípios modernos de Engenharia de Software, o Nano Cores tem como objetivo resolver dores complexas de controladoria, controle de tabelas e precificações comerciais, extraindo o limite máximo de performance e confiabilidade do ambiente desktop com VBA e ADO/SQL.
