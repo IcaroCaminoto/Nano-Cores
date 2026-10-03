@@ -1,5 +1,19 @@
+---
+name: "spec-001"
+title: "VBA Dynamic Price List Generator"
+description: "Specs for ETL & Print-Ready Pricing List"
+version: "1.0.0"
+skills:
+  - "vba-high-performance"
+  - "vba-coding-standards"
+  - "code-spec-validator"
+environment:
+  runtime: "Excel VBA 7.1 (64-bit)"
+  host_file: "Nano_Cores_CoreEngine.xlsm"
+---
+
 # SPECIFICATION: VBA Dynamic Price List Generator (ETL & Print-Ready Engine)
-**File**: `spec.md`  
+**File**: `spec-001.md`  
 **Target Environment**: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatible)  
 **Task for LLM/Coding Agent**: Implement a modular, high-performance VBA solution adhering strictly to the architecture, contracts, and algorithmic stages defined below.
 

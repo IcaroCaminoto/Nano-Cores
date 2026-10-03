@@ -61,7 +61,7 @@ Public Sub MotorPrecificacaoMultidirecional(ByVal modoAlvo As String)
                "Extended Properties=""Excel 12.0 Xml;HDR=YES;IMEX=1"";"
 
     query_federais = "SELECT sku_codigo_produto, aliquota_pis, aliquota_cofins, aliquota_ipi FROM [Impostos_Federais$]"
-    query_estaduais = "SELECT sku_codigo_produto, uf_destino, aliquota_icms, aliquota_st FROM [Impostos_Estaduais$]"
+    query_estaduais = "SELECT sku_codigo_produto, uf_destino, aliquota_icms, aliquota_st FROM [Matriz_ICMS_ST$]"
     
     On Error GoTo TrataErro
 
@@ -158,7 +158,7 @@ Public Sub MotorPrecificacaoMultidirecional(ByVal modoAlvo As String)
     ElseIf modoAlvo = "Preço Base Unitário" Then
         ' Âncora: Preço Base Unitário. Forja Preços Finais, ajusta a Margem e deriva o Base Caixa.
         Call LoPrecificacao.InjetarLoteCirurgico(arrDados, "Preço Final Caixa", "Preço Final Unitário", "Margem Bruta (%)", "P. Base - Ex IPI/ST")
-        
+
     End If
 
     Exit Sub
@@ -170,11 +170,12 @@ TrataErro:
 End Sub
 
 Private Sub CalcularPrecoMulti(ByRef arrDados As Variant, ByVal i As Long, ByVal modoAlvo As String, colCusto As Long, colMargem As Long, colPrecoCaixa As Long, colPrecoUnit As Long, colQtd As Long, colEncargos As Long, colIPI As Long, colST As Long, colPrecoBaseCx As Long, colPrecoBaseUn As Long)
-    Dim vCusto As Double, vQtd As Double, vEncargos As Double
-    Dim vPrecoU As Double, vPrecoC As Double, vMargemB As Double
-    Dim vDivisorBase As Double
+    Dim vCusto As Double, vQtd As Double
+    Dim vPfu As Double, vPfc As Double, vMbp As Double
+    Dim vMkp As Double
     Dim vIPI As Double, vST As Double
-    Dim vPrecoBaseC As Double, vPrecoBaseU As Double
+    Dim vPbc As Double, vPbu As Double
+    Dim vEncargos_dentro As Double, vEncargos_fora As Double
 
     vCusto = Val(arrDados(i, colCusto))
     If vCusto <= 0 Then Exit Sub
@@ -185,13 +186,50 @@ Private Sub CalcularPrecoMulti(ByRef arrDados As Variant, ByVal i As Long, ByVal
     vPrecoBaseU = Val(arrDados(i, colPrecoBaseUn))
     
     vQtd = Val(arrDados(i, colQtd))
-    vEncargos = Val(arrDados(i, colEncargos))
+    vEncargos_dentro = Val(arrDados(i, colEncargos))
     vMargemB = Val(arrDados(i, colMargem))
     vPrecoU = Val(arrDados(i, colPrecoUnit))
     vPrecoC = Val(arrDados(i, colPrecoCaixa))
 
+'     If itc = "Preço Final Caixa" Then
+'         ' vPfc é a entrada informada
+'         vPfu = vPfc / vQtd
+'         vPbc = vPfc / (1 + encargos_por_fora)
+'         vPbu = vPbc / vQtd
+'         vMbp = 1 - ((vCusto / vPfc) + encargos_por_dentro)
+
+'     ElseIf itc = "Preço Final Unitário" Then
+'         ' vPfu é a entrada informada
+'         vPfc = vPfu * vQtd
+'         vPbc = vPfc / (1 + encargos_por_fora)
+'         vPbu = vPbc / vQtd
+'         vMbp = 1 - ((vCusto / vPfc) + encargos_por_dentro)
+
+'     ElseIf itc = "Preço Base Caixa" Then
+'         ' vPbc é a entrada informada
+'         vPfc = vPbc * (1 + encargos_por_fora)
+'         vPfu = vPfc / vQtd
+'         vPbu = vPbc / vQtd
+'         vMbp = 1 - ((vCusto / vPfc) + encargos_por_dentro)
+
+'     ElseIf itc = "Preço Base Unitário" Then
+'         ' vPbu é a entrada informada
+'         vPbc = vPbu * vQtd
+'         vPfc = vPbc * (1 + encargos_por_fora)
+'         vPfu = vPfc / vQtd
+'         vMbp = 1 - ((vCusto / vPfc) + encargos_por_dentro)
+
+'     ElseIf itc = "Margem Bruta %" Then
+'         ' vMbp é a entrada informada
+'         vMkp = 1 - (encargos_por_dentro + vMbp)
+'         vPfc = vCusto / vMkp
+'         vPfu = vPfc / vQtd
+'         vPbc = vPfc / (1 + encargos_por_fora)
+'         vPbu = vPbc / vQtd
+'     End If
+
     If modoAlvo = "Margem Bruta" Then
-        vDivisorBase = 1 - (vEncargos + vMargemB)
+        vDivisorBase = 1 - (vEncargos_dentro + vMargemB)
         If vDivisorBase <> 0 Then
             vPrecoC = vCusto / vDivisorBase
             arrDados(i, colPrecoCaixa) = vPrecoC
@@ -202,7 +240,7 @@ Private Sub CalcularPrecoMulti(ByRef arrDados As Variant, ByVal i As Long, ByVal
         End If
     ElseIf modoAlvo = "Preço Caixa" Then
         If vPrecoC <> 0 Then
-            vMargemB = (vPrecoC - vCusto - (vPrecoC * vEncargos)) / vPrecoC
+        vMargemB = (vPrecoC - vCusto - (vPrecoC * vEncargos)) / vPrecoC
             arrDados(i, colMargem) = vMargemB
         End If
         If vQtd > 0 Then

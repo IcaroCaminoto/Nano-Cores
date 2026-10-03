@@ -4,3 +4,6 @@
 # Excel
 *.xlsx
 *.xlsm
+
+# Skills
+*.agent/.skills/.agent/
