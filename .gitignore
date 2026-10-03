@@ -5,5 +5,6 @@
 *.xlsx
 *.xlsm
 
-# Skills
-*.agent/.skills/.agent/
+# macOS
+.DS_Store
+**/.DS_Store
