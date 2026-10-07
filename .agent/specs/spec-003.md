@@ -7,7 +7,6 @@ skills:
   - "vba-high-performance"
   - "vba-coding-standards"
   - "code-spec-validator"
-  - "end-user-doc-generator"
 environment:
   runtime: "Excel VBA 7.1 (64-bit)"
   host_file: "Nano_Cores_CoreEngine.xlsm"
@@ -15,33 +14,44 @@ environment:
 
 ## 1. CONTEXT & ACCEPTANCE CRITERIA
 ### 1.1 Bussiness Context
-Desenvolver 1 rotina de fechamento de custos que se especializa em mensurar uma média móvel de custos por sku, com base nos dados históricos de custos fornecidos por um relatório em formato '.xlsx' e salva o resultado em uma planilha de banco de dados adicionando uma nova aba.
+Desenvolver 1 rotina de fechamento de custos que se especializa em calcular uma média móvel de custos por sku. Com base nos dados históricos de custos fornecidos por um relatório em formato '.xlsx', a rotina deverá salvar o resultado adicionando uma nova aba na planilha de banco de dados, situada em `/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Custos.xlsx`.
 
 ### 1.2 Functional Requirements
-- **Cálculo Médias Móveis:** Consumo do extrato ERP, associação pai/filho via taxonomia e cálculo das médias móveis com base em uma das quatro opções de snapshot em dias: última atualização, 30, 60, 90.
+- **RF-01 (Cálculo Médias Móveis):** Consumo do extrato ERP, associação pai/filho via taxonomia e cálculo das médias móveis com base em uma das quatro opções de snapshot em dias: última atualização, 30, 60, 90.
 
 ### 1.3 Acceptance Criteria (Definition of Done)
-- [ ] **Critério 1 (Cálculo):** O custo final apurado deve coincidir com a fórmula 
-      `Custo_Final_Produto_A = ∑n / c`, onde `∑n` representa a soma dos valores de custo encontrados no período e `c` a quantidade de registros analisados.
-- [ ] **Critério 2 (Performance):** Processar 10.000 SKUs em menos de 3,5 segundos (medido via `Timer` com CPU sem aceleração externa).
-- [ ] **Critério 3 (Persistência):** Todos os resultados devem persistir em uma tabela do banco de dados `G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Custos.xlsx`. Adicione uma nova aba a esta planilha sempre que a rotina for executada.
-- [ ] **Critério 4 (State Restoration):** Em caso de erro de divisão por zero, o Excel deve restaurar o cursor, eventos e cálculo automático imediatamente, abortar a rotina e disparar `Err.Raise` com mensagem descritiva apresentando o SKU causador do erro.
-- [ ] **Critério 5 (Precisão):** O custo final apurado deve respeitar a tolerância de no máximo duas casas decimais (R$ 0,00) por SKU.
-- [ ] **Critério 6 (Preservação Integral do Catálogo - Left Join Semântico):** Todo e qualquer produto catalogado no Cadastro Mestre (`Cadastro_Produtos`) deve obrigatoriamente constar no resultado, independentemente de possuir ou não movimentação no extrato de custos do ERP.
-- [ ] **Critério 7 (Tratamento de SKUs sem Histórico):** Para SKUs sem nenhum lançamento contábil no período analisado, o campo `Custo_Medio_SKU` deve ser renderizado como `0,00`, sem interromper a execução nem descartar a linha.
-- [ ] **Critério 8 (Clusterização Reflexiva de SKUs):** A família não é uma entidade abstrata; ela é identificada pelo próprio código do SKU Pai. O SKU Pai deve obrigatoriamente fazer parte do seu próprio cluster de cálculo. O cálculo do `Custo_Medio_Familia` deve ponderar/computar o conjunto unificado contendo o SKU Pai somado a todos os seus respectivos SKUs Filhos.
-- [ ] **Critério 9 (Tratamento de SKUs Desacompanhados / Órfãos):** Para qualquer produto do Cadastro Mestre que não possua vínculo na tabela de associações, o sistema deve assumir `Cod_Familia = Cod_Produto` e `Custo_Medio_Familia = Custo_Medio_SKU`.
-- [ ] **Critério 10 (Dynamic Header Schema Discovery & Tolerance):** O motor de ingestão do extrato ERP não deve depender de índices fixos de colunas. A rotina deve varrer horizontalmente todos os cabeçalhos da linha 3 e resolver dinamicamente as posições de: `Código`, `Data Atualização` e `Custo Gerencial`. Caso qualquer uma dessas três colunas obrigatórias não seja localizada, a execução deve ser imediatamente interrompida, restaurando os estados do Excel e exibindo uma mensagem de aviso (`vbExclamation`) listando expressamente quais colunas estão ausentes.
+- [x] **Critério 1 (Equação Determinística de Média Móvel):** O custo médio apurado para qualquer produto ($A$) no período contratado deve coincidir estritamente com a média aritmética ponderada pelo volume de lançamentos válidos:
+
+$$\text{Custo\_Medio\_SKU}_A = \frac{1}{c} \sum_{i=1}^{c} C_{A,i}$$
+
+  **Dicionário dos Parâmetros da Equação:**
+  | Variável | Definição Semântica | Tipo VBA / Restrição |
+  | :---: | :--- | :--- |
+  | $\text{Custo\_Medio\_SKU}_A$ | Custo médio individual final apurado para o produto $A$ | `Double` (arredondado para 2 casas decimais: `R$ #,##0.00`) |
+  | $c$ | Cardinalidade total de lançamentos válidos do SKU no período | `Long` ($c = \text{Qtd\_Transacoes\_SKU}$) |
+  | $C_{A,i}$ | Valor do custo gerencial registrado na $i$-ésima transação | `Double` extraído da coluna `Custo Gerencial` |
+  | $\sum_{i=1}^{c} C_{A,i}$ | Somatório cumulativo dos custos transacionados na janela | Variável acumuladora (`Double`) |
+
+  > **Tratamento de Indeterminação ($c = 0$):** Se o total de registros no período for nulo ($c = 0$), o motor é proibido de executar divisão; deve aplicar o valor sentinela $\text{Custo\_Medio\_SKU}_A = 0{,}00$, preservando o produto na matriz sem interrupção.
+- [x] **Critério 2 (Performance):** Processar 10.000 SKUs em menos de 3,5 segundos (medido via `Timer` com CPU sem aceleração externa).
+- [x] **Critério 3 (Persistência):** Todos os resultados devem persistir em uma tabela do banco de dados /Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Custos.xlsx`. Adicione uma nova aba a esta planilha sempre que a rotina for executada.
+- [x] **Critério 4 (State Restoration):** Em caso de erro de divisão por zero, o Excel deve restaurar o cursor, eventos e cálculo automático imediatamente, abortar a rotina e disparar `Err.Raise` com mensagem descritiva apresentando o SKU causador do erro.
+- [x] **Critério 5 (Precisão):** O custo final apurado deve respeitar a tolerância de no máximo duas casas decimais (R$ 0,00) por SKU.
+- [x] **Critério 6 (Preservação Integral do Catálogo - Left Join Semântico):** Todo e qualquer produto catalogado no Cadastro Mestre (`Cadastro_Produtos`) deve obrigatoriamente constar no resultado, independentemente de possuir ou não movimentação no extrato de custos do ERP.
+- [x] **Critério 7 (Tratamento de SKUs sem Histórico):** Para SKUs sem nenhum lançamento contábil no período analisado, o campo `Custo_Medio_SKU` deve ser renderizado como `0,00`, sem interromper a execução nem descartar a linha.
+- [x] **Critério 8 (Clusterização Reflexiva de SKUs):** A família não é uma entidade abstrata; ela é identificada pelo próprio código do SKU Pai. O SKU Pai deve obrigatoriamente fazer parte do seu próprio cluster de cálculo. O cálculo do `Custo_Medio_Familia` deve ponderar/computar o conjunto unificado contendo o SKU Pai somado a todos os seus respectivos SKUs Filhos.
+- [x] **Critério 9 (Tratamento de SKUs Desacompanhados / Órfãos):** Para qualquer produto do Cadastro Mestre que não possua vínculo na tabela de associações, o sistema deve assumir `Cod_Familia = Cod_Produto` e `Custo_Medio_Familia = Custo_Medio_SKU`.
+- [x] **Critério 10 (Dynamic Header Schema Discovery & Tolerance):** O motor de ingestão do extrato ERP não deve depender de índices fixos de colunas. A rotina deve varrer horizontalmente todos os cabeçalhos da linha 3 e resolver dinamicamente as posições de: `Código`, `Data Atualização` e `Custo Gerencial`. Caso qualquer uma dessas três colunas obrigatórias não seja localizada, a execução deve ser imediatamente interrompida, restaurando os estados do Excel e exibindo uma mensagem de aviso (`vbExclamation`) listando expressamente quais colunas estão ausentes.
 
 ## 2. DATA CONTRACTS & SOURCES
 ### Input Contract 01: Product Parameters Association
-* **Origin Path:** `G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Parametros_Associacao_Produtos.xlsx`
-* **Origin Entity:** Worksheet `Assoc_CostsRoutine`
+* **Origin Path:** `/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Parametros_Associacao_Produtos.xlsx`
+* **Origin Entity:** Worksheet `Assoc_MediasMoveis`
 * **Ingestion Method:** `ADODB.Connection` (Provider: `Microsoft.ACE.OLEDB.12.0; Extended Properties="Excel 12.0 Xml;HDR=YES;IMEX=1;"`)
 * **SQL Query Definition:**
    ```sql
   SELECT [Cod_Pai], [Cod_Filho] 
-  FROM [Assoc_CostsRoutine$] 
+  FROM [Assoc_MediasMoveis$] 
   WHERE [Cod_Pai] IS NOT NULL
    ```
 
@@ -62,7 +72,7 @@ Desenvolver 1 rotina de fechamento de custos que se especializa em mensurar uma 
        - Item: `Scripting.Dictionary` contendo todas as chaves do cluster (`{Cod_Pai, Filho_1, Filho_2, ...}`).
 
 * **Regra de Carga Algorítmica:**
-  Ao iterar os registros de `Assoc_CostsRoutine`:
+  Ao iterar os registros de `Assoc_MediasMoveis`:
   - Se `Cod_Pai` ainda não existe em `dictFamilyClusters`, criar novo sub-dicionário e registrar o próprio `Cod_Pai` como membro número 1.
   - Registrar o `Cod_Filho` como membro subsequente dentro do mesmo cluster.
   - No `dictSKUToFamily`, registrar `dictSKUToFamily(Cod_Pai) = Cod_Pai` e `dictSKUToFamily(Cod_Filho) = Cod_Pai`.
@@ -73,7 +83,7 @@ Desenvolver 1 rotina de fechamento de custos que se especializa em mensurar uma 
 ---
 
 ### Input Contract 02: Product Master
-* **Origin Path:** `G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Produtos.xlsx`
+* **Origin Path:** `/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Produtos.xlsx`
 * **Origin Entity:** Worksheet `Cadastro_Produtos`
 * **Ingestion Method:** `ADODB.Connection` (Provider: `Microsoft.ACE.OLEDB.12.0; Extended Properties="Excel 12.0 Xml;HDR=YES;IMEX=1;"`)
 * **SQL Query Definition:**
@@ -127,7 +137,7 @@ Desenvolver 1 rotina de fechamento de custos que se especializa em mensurar uma 
 ---
 
 ### Output Contract 01: External Database Persistence (Cerulean_DB_Custos)
-* **Destination Path:** `G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Custos.xlsx`
+* **Destination Path:** `/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Custos.xlsx`
 * **Egress Mechanism:** Automação COM em segundo plano (`Excel.Application` com `Visible = False`, abertura via `Workbooks.Open(ReadOnly:=False)`).
 * **Target Worksheet Dynamic Naming:**
   * Nome da aba gerada: 
@@ -154,13 +164,11 @@ Desenvolver 1 rotina de fechamento de custos que se especializa em mensurar uma 
   * **Dimensão da Matriz:** `ReDim outArray(1 To dictProductMaster.Count, 1 To 7) As Variant`.
   * **Alocação:** Populada sequencialmente pelo loop diretor do catálogo mestre.
 
-* **Post-Processing, Presentation & Table Conversion:**
+* **Post-Processing & Raw Data Persistence:**
   1. Adicionar uma nova Worksheet ao final de `Cerulean_DB_Custos.xlsx`.
   2. Despejar a linha de cabeçalhos em `Range("A1:G1")`.
   3. Despejo em bloco único da matriz de dados: `Range("A2").Resize(dictProductMaster.Count, 7).Value2 = outArray`.
-  4. Converter o intervalo populado em `ListObject` estruturado (`tb_Custos_YYYYMMDD_HHMM`).
-  5. Aplicar estilos visuais corporativos: cabeçalho escuro, texto branco, linhas zebradas desligadas (`ShowTableStyleRowStripes = False`), alinhamentos e formatos de moeda estritos.
-  6. Autoajuste de colunas (`Columns.AutoFit`).
+  4. Manter dados em formato bruto, sem estilização visual ou conversão de tabela, garantindo leitura limpa e de alta performance via SQL/ADO.
 
 * **Fallback, Concurrency & Collision Policy:**
   * **File Lock Check:** Antes de iniciar a gravação, testar se `Cerulean_DB_Custos.xlsx` está aberto por outro processo/usuário na rede (`Open For Binary Access Read Write Lock Read Write`). Se travado, abortar imediatamente com `Err.Raise` e aviso de concorrência.
@@ -331,7 +339,7 @@ flowchart TD
      - Localiza as colunas obrigatórias na linha 3.
      - Caso falte alguma coluna, notifica o usuário via `MsgBox`, fecha o arquivo e retorna `Empty`.
      - Caso passe na validação, extrai o intervalo da linha 4 até a última linha para a matriz `Variant` e retorna os dados brutos.
-  - `Public Function LoadAssociationClusters(ByRef outFamilyMap As Object, ByRef outClusters As Object) As Boolean`: Executa query ADO em `Assoc_CostsRoutine` e popula `dictSKUToFamily` e `dictFamilyClusters`.
+  - `Public Function LoadAssociationClusters(ByRef outFamilyMap As Object, ByRef outClusters As Object) As Boolean`: Executa query ADO em `Assoc_MediasMoveis` e popula `dictSKUToFamily` e `dictFamilyClusters`.
   - `Public Function LoadProductMaster() As Object`: Executa query ADO em `Cadastro_Produtos` e retorna `dictProductMaster`.
   - `Public Function IngestERPWorkbook(ByVal filePath As String) As Variant`: Abre o arquivo do ERP em segundo plano, extrai os dados a partir da linha 4 para uma matriz `Variant` e fecha o arquivo imediatamente.
 
@@ -347,9 +355,50 @@ flowchart TD
 
 ---
 
-### Module 4: `mod_CostEngine_Persistence` (Output & Table Formatting)
+### Module 4: `mod_CostEngine_Persistence` (Output & Raw Data Persistence)
 * **Responsabilidade:** Gerenciar a pasta de trabalho de destino `Cerulean_DB_Custos.xlsx`, criar a nova aba com timestamp e descarregar os dados em lote único.
-* **Proibições:** Não recalcula valores; apenas descarrega e formata visualmente.
+* **Proibições:** Não recalcula valores; apenas descarrega dados brutos sem formatação visual para garantir compatibilidade com consultas SQL posteriores.
 * **Rotinas & Assinaturas:**
   - `Public Sub PersistToDatabase(ByRef outputMatrix As Variant, ByVal windowDays As Long)`: Cria nova Worksheet, aplica despejo em bloco único (`Resize.Value2`) dando nome às respectivas colunas.
   - `Private Function CheckFileLock(ByVal fullPath As String) As Boolean`: Testa acesso binário exclusivo antes da abertura COM.
+
+## 5. STEP-BY-STEP IMPLEMENTATION GUIDE FOR THE AGENT
+
+### 5.1 Protocolo de Execução
+- **Modo Incremental:** Execute estritamente um passo por turno. Não avance sem aprovação do usuário.
+- **Fidelidade aos Contratos:** Nomes de módulos, tabelas e assinaturas devem seguir rigorosamente as seções 2 (Data Contracts) e 4 (Architectural Blueprint).
+- **Invocação de Skills:** Antes de codificar, carregue as skills declaradas no frontmatter (`vba-high-performance`, `code-spec-validator`, `vba-coding-standards`, `end-user-doc-generator`).
+
+---
+
+### 5.2 Implementation Checklist
+
+- [x] **Step 1: Infraestrutura e Gestão de Estado**
+  - **Arquivo:** `/Users/icaro/Documents/CWS/Nano Cores/src/vba/core/mod_AppExecution.bas`
+  - **Ação:** Implementar manipulador de estado da aplicação (`ScreenUpdating`, `Calculation`, `EnableEvents`) com suporte a medição de tempo via `Timer`.
+  - **Restrição:** `Option Explicit` obrigatório; zero lógica de negócio.
+  - **Safezone:** Testar se o bloco de restauração funciona em caso de simulação de erro (`FinallyBlock`).
+
+- [x] **Step 2: Ingestão de Dados e Schemas Primários**
+  - **Arquivo:** `/Users/icaro/Documents/CWS/Nano Cores/src/vba/costs/mod_CostEngine_Data.bas`
+  - **Ação:** Implementar funções `LoadProductMaster` e `LoadAssociationClusters` conforme contratos de entrada (Section 2).
+  - **Restrição:** Leitura pura para memória; fechamento imediato de conexões externas (`.Close`, `Set = Nothing`). Proibido realizar cálculos contábeis.
+  - **Safezone:** Validar se a garantia reflexiva do cluster (Pai como membro 1) e o fallback para órfãos foram aplicados.
+
+- [x] **Step 3: Motor Algorítmico em Memória**
+  - **Arquivo:** `/Users/icaro/Documents/CWS/Nano Cores/src/vba/costs/mod_CostEngine_Calculator.bas`
+  - **Ação:** Implementar o pipeline matemático seguindo o diagrama da Seção 3 (`ComputeSKUMovingAverages` e `BuildFinalOutputMatrix`).
+  - **Restrição:** 100% em memória RAM (`Variant` / `Dictionary`). Zero chamadas a `Worksheet`, `Range` ou `Cells`.
+  - **Safezone:** Asserção contra fixture sintética: validar tratamento de divisão por zero (fallback `0.00`) para SKUs sem histórico.
+
+- [x] **Step 4: Persistência Externa e Formatação**
+  - **Arquivo:** `/Users/icaro/Documents/CWS/Nano Cores/src/vba/costs/mod_CostEngine_Persistence.bas`
+  - **Ação:** Implementar verificação de trava de arquivo (`CheckFileLock`), abertura em background, despejo em bloco único (`.Resize().Value2`), conversão para `ListObject` e formatação estrita de tipos e moeda.
+  - **Restrição:** Não recalcular médias; apenas persistir e estruturar dados.
+  - **Safezone:** Confirmar fechamento com `SaveChanges:=True` e liberação de ponteiros COM.
+
+- [x] **Step 5: Orquestrador Principal e Auditoria Final**
+  - **Arquivo:** `/Users/icaro/Documents/CWS/Nano Cores/src/vba/costs/mod_CostEngine_Main.bas`
+  - **Ação:** Expor a rotina pública unificadora encadeando Step 1 → Step 2 → Step 3 → Step 4.
+  - **Restrição:** Manter métodos auxiliares como privados de projeto (`Option Private Module`).
+  - **Safezone:** Executar o protocolo da skill `code-spec-validator` (0 falhas de compilação, integridade de schema e estados restaurados).
