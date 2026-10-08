@@ -14,8 +14,8 @@ Option Explicit
 ' ------------------------------------------------------------------------------
 ' Constantes de caminhos padrão
 ' ------------------------------------------------------------------------------
-Public Const DB_PRODUCTS_FILE As String = "/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Produtos.xlsx"
-Public Const DB_PARAM_ASSOC_FILE As String = "/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Parametros_Associacao_Produtos.xlsx"
+Public Const DB_PRODUCTS_FILE As String = "G:\Ícaro\Cerulean_DB\database\Cerulean_DB_Produtos.xlsx"
+Public Const DB_PARAM_ASSOC_FILE As String = "G:\Ícaro\Cerulean_DB\database\Cerulean_DB_Parametros_Associacao_Produtos.xlsx"
 
 ' ==============================================================================
 ' Função Auxiliar Privada: BuildExcelConnectionString
@@ -103,24 +103,16 @@ Public Function LoadProductMaster(Optional ByVal customFilePath As String = vbNu
     Loop
     
 CleanupBlock:
-    On Error Resume Next
-    If Not rs Is Nothing Then
-        If rs.State = 1 Then rs.Close
-        Set rs = Nothing
-    End If
-    If Not conn Is Nothing Then
-        If conn.State = 1 Then conn.Close
-        Set conn = Nothing
-    End If
-    On Error GoTo 0
+    ' Liberação de memória no caminho de sucesso
+    Call CloseAdoObjects(rs, conn)
     
     Set LoadProductMaster = dictMaster
     Exit Function
-    
+
 DataErrorHandler:
     Dim errDesc As String: errDesc = Err.Description
     Dim errNum As Long: errNum = Err.Number
-    Call CleanupBlock
+    Call CloseAdoObjects(rs, conn)
     Err.Raise errNum, "mod_CostEngine_Data.LoadProductMaster", _
               "Falha na ingestão ADO do Cadastro Mestre: " & errDesc
 End Function
@@ -419,3 +411,20 @@ Private Function ResolveDatabasePath(ByVal fileName As String, ByVal absoluteFal
     ResolveDatabasePath = absoluteFallback
 End Function
 
+' ==============================================================================
+' Função Auxiliar Privada: CleanupBlock
+' Finalidade: Fechar e liberar com segurança instâncias de Recordset e 
+'             Connection.
+' ==============================================================================
+Private Sub CloseAdoObjects(ByRef rs As Object, ByRef conn As Object)
+    On Error Resume Next
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+        Set rs = Nothing
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+        Set conn = Nothing
+    End If
+    On Error GoTo 0
+End Sub

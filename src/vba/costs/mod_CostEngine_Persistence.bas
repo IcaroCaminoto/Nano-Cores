@@ -16,7 +16,7 @@ Option Explicit
 ' ------------------------------------------------------------------------------
 ' Constante do caminho padrão de destino
 ' ------------------------------------------------------------------------------
-Public Const DB_COSTS_FILE As String = "/Users/icaro/Documents/CWS/Nano Cores/src/sheets/Cerulean_DB/database/Cerulean_DB_Custos.xlsx"
+Public Const DB_COSTS_FILE As String = "G:\Ícaro\Cerulean_DB\database\Cerulean_DB_Custos.xlsx"
 
 ' ==============================================================================
 ' Função: CheckFileLock

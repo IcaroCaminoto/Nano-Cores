@@ -11,7 +11,6 @@ Attribute VB_Name = "mod_CostEngine_Main"
 ' ==============================================================================
 
 Option Explicit
-Option Private Module
 
 Private Const APP_TITLE As String = "Fechamento de Custos"
 
