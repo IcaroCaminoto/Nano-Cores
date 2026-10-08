@@ -92,6 +92,7 @@ Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     mockERP(3, 1) = "SKU-BOUND": mockERP(3, 2) = today - 91: mockERP(3, 3) = 999#
     
     Set dictCount = CreateObject("Scripting.Dictionary")
+    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
     ' Validação de retorno de instâncias
@@ -130,6 +131,7 @@ Private Sub Test_02_Snapshot_LatestUpdateIsolation()
     mockERP(3, 1) = "SKU-SNAP": mockERP(3, 2) = today - 10: mockERP(3, 3) = 120#
     
     Set dictCount = CreateObject("Scripting.Dictionary")
+    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKULatestUpdate(mockERP, 1, 2, 3, dictCount)
     
     If dictAvg Is Nothing Then
@@ -164,6 +166,7 @@ Private Sub Test_03_IndeterminationAndZeroDivisionDefense()
     mockERP(1, 1) = "SKU-ANTIGO": mockERP(1, 2) = Date - 120: mockERP(1, 3) = 500#
     
     Set dictCount = CreateObject("Scripting.Dictionary")
+    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
     ' SKU-ANTIGO não teve nenhum registro na janela de 90 dias

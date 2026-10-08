@@ -34,7 +34,7 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
                                          ByVal idxCodigo As Long, _
                                          ByVal idxData As Long, _
                                          ByVal idxCusto As Long, _
-                                         Optional ByRef outTxCount As Variant) As Object
+                                         Optional ByRef outTxCount As Object = Nothing) As Object
     
     Dim dictSKUAvg As Object
     Dim dictTxCount As Object
@@ -66,6 +66,9 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     
     ' Defesa para conjunto vazio (Empty Set Defense)
     If IsEmpty(arrERPRaw) Then
+        If Not outTxCount Is Nothing Then
+            outTxCount.RemoveAll
+        End If
         On Error Resume Next
         Set outTxCount = dictTxCount
         On Error GoTo 0
@@ -117,18 +120,17 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
         End If
     Next rawCode
     
-    ' Popula diretamente o dicionário pré-instanciado pelo chamador ou atribui referência
+    ' Popula diretamente o dicionário pré-instanciado pelo chamador e assegura a referência
     If Not outTxCount Is Nothing Then
         outTxCount.RemoveAll
         Dim k As Variant
         For Each k In dictTxCount.Keys
-            outTxCount(k) = dictTxCount(k)
+            outTxCount.Item(k) = dictTxCount.Item(k)
         Next k
-    Else
-        On Error Resume Next
-        Set outTxCount = dictTxCount
-        On Error GoTo 0
     End If
+    On Error Resume Next
+    Set outTxCount = dictTxCount
+    On Error GoTo 0
     
     Set ComputeSKUMovingAverages = dictSKUAvg
 End Function
@@ -176,6 +178,9 @@ Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
     
     ' Defesa para conjunto vazio (Empty Set Defense)
     If IsEmpty(arrERPRaw) Then
+        If Not outTxCount Is Nothing Then
+            outTxCount.RemoveAll
+        End If
         On Error Resume Next
         Set outTxCount = dictTxCount
         On Error GoTo 0
@@ -225,18 +230,17 @@ Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
         dictTxCount(skuKey) = 1&
     Next rawCode
     
-    ' Popula diretamente o dicionário pré-instanciado pelo chamador ou atribui referência
+    ' Popula diretamente o dicionário pré-instanciado pelo chamador e assegura a referência
     If Not outTxCount Is Nothing Then
         outTxCount.RemoveAll
         Dim k As Variant
         For Each k In dictTxCount.Keys
-            outTxCount(k) = dictTxCount(k)
+            outTxCount.Item(k) = dictTxCount.Item(k)
         Next k
-    Else
-        On Error Resume Next
-        Set outTxCount = dictTxCount
-        On Error GoTo 0
     End If
+    On Error Resume Next
+    Set outTxCount = dictTxCount
+    On Error GoTo 0
     
     Set ComputeSKULatestUpdate = dictSKUAvg
 End Function
