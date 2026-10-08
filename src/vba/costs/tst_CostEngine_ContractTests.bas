@@ -91,13 +91,28 @@ Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     ' Record 3: 91 dias atrás (DEVE ser excluído)
     mockERP(3, 1) = "SKU-BOUND": mockERP(3, 2) = today - 91: mockERP(3, 3) = 999#
     
+    Set dictCount = CreateObject("Scripting.Dictionary")
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
-    ' Média esperada: (100 + 200) / 2 = 150.00
-    AssertDoubleApprox CDbl(dictAvg("SKU-BOUND")), 150#, 0.001, _
-                       "Corte 90D: Considera apenas transações dentro da janela (Date - 89 e Date - 90)"
-    AssertEqual CLng(dictCount("SKU-BOUND")), 2&, _
-                "Corte 90D: Cardinalidade de lançamentos válidos deve ser exatamente 2"
+    ' Validação de retorno de instâncias
+    If dictAvg Is Nothing Then
+        AssertEqual "Nothing", "Object", "Corte 90D: dictAvg deve ser instanciado e retornado"
+    ElseIf Not dictAvg.Exists("SKU-BOUND") Then
+        AssertEqual False, True, "Corte 90D: Chave 'SKU-BOUND' deve existir em dictAvg"
+    Else
+        ' Média esperada: (100 + 200) / 2 = 150.00
+        AssertDoubleApprox CDbl(dictAvg("SKU-BOUND")), 150#, 0.001, _
+                           "Corte 90D: Considera apenas transações dentro da janela (Date - 89 e Date - 90)"
+    End If
+    
+    If dictCount Is Nothing Then
+        AssertEqual "Nothing", "Object", "Corte 90D: dictCount deve ser instanciado e retornado (Not Nothing)"
+    ElseIf Not dictCount.Exists("SKU-BOUND") Then
+        AssertEqual False, True, "Corte 90D: Chave 'SKU-BOUND' deve existir em dictCount"
+    Else
+        AssertEqual CLng(dictCount("SKU-BOUND")), 2&, _
+                    "Corte 90D: Cardinalidade de lançamentos válidos deve ser exatamente 2"
+    End If
 End Sub
 
 ' ------------------------------------------------------------------------------
@@ -114,12 +129,26 @@ Private Sub Test_02_Snapshot_LatestUpdateIsolation()
     mockERP(2, 1) = "SKU-SNAP": mockERP(2, 2) = today - 5:  mockERP(2, 3) = 175.5
     mockERP(3, 1) = "SKU-SNAP": mockERP(3, 2) = today - 10: mockERP(3, 3) = 120#
     
+    Set dictCount = CreateObject("Scripting.Dictionary")
     Set dictAvg = ComputeSKULatestUpdate(mockERP, 1, 2, 3, dictCount)
     
-    AssertDoubleApprox CDbl(dictAvg("SKU-SNAP")), 175.5, 0.001, _
-                       "Snapshot: Isola o custo da data mais recente (Date - 5)"
-    AssertEqual CLng(dictCount("SKU-SNAP")), 1&, _
-                "Snapshot: Cardinalidade de transações avaliadas é unitária (1)"
+    If dictAvg Is Nothing Then
+        AssertEqual "Nothing", "Object", "Snapshot: dictAvg deve ser instanciado e retornado"
+    ElseIf Not dictAvg.Exists("SKU-SNAP") Then
+        AssertEqual False, True, "Snapshot: Chave 'SKU-SNAP' deve existir em dictAvg"
+    Else
+        AssertDoubleApprox CDbl(dictAvg("SKU-SNAP")), 175.5, 0.001, _
+                           "Snapshot: Isola o custo da data mais recente (Date - 5)"
+    End If
+    
+    If dictCount Is Nothing Then
+        AssertEqual "Nothing", "Object", "Snapshot: dictCount deve ser instanciado e retornado (Not Nothing)"
+    ElseIf Not dictCount.Exists("SKU-SNAP") Then
+        AssertEqual False, True, "Snapshot: Chave 'SKU-SNAP' deve existir em dictCount"
+    Else
+        AssertEqual CLng(dictCount("SKU-SNAP")), 1&, _
+                    "Snapshot: Cardinalidade de transações avaliadas é unitária (1)"
+    End If
 End Sub
 
 ' ------------------------------------------------------------------------------
@@ -129,22 +158,40 @@ Private Sub Test_03_IndeterminationAndZeroDivisionDefense()
     Dim mockERP(1 To 1, 1 To 3) As Variant
     Dim dictAvg As Object
     Dim dictCount As Object
+    Dim txCountVal As Long
     
     ' Registro fora da janela (120 dias atrás)
     mockERP(1, 1) = "SKU-ANTIGO": mockERP(1, 2) = Date - 120: mockERP(1, 3) = 500#
     
+    Set dictCount = CreateObject("Scripting.Dictionary")
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
     ' SKU-ANTIGO não teve nenhum registro na janela de 90 dias
     Dim costOut As Double
-    If dictAvg.Exists("SKU-ANTIGO") Then
-        costOut = CDbl(dictAvg("SKU-ANTIGO"))
+    If Not dictAvg Is Nothing Then
+        If dictAvg.Exists("SKU-ANTIGO") Then
+            costOut = CDbl(dictAvg("SKU-ANTIGO"))
+        Else
+            costOut = 0#
+        End If
     Else
-        costOut = 0#
+        costOut = -1#
     End If
     
     AssertEqual costOut, 0#, _
                 "Critério 1: SKU sem transações na janela avalia estritamente para 0.00 sem divisão por zero"
+                
+    If dictCount Is Nothing Then
+        AssertEqual "Nothing", "Object", "Critério 1: dictCount deve ser instanciado e retornado"
+    Else
+        If dictCount.Exists("SKU-ANTIGO") Then
+            txCountVal = CLng(dictCount("SKU-ANTIGO"))
+        Else
+            txCountVal = 0&
+        End If
+        AssertEqual txCountVal, 0&, _
+                    "Critério 1: Quantidade de transações avaliadas deve ser 0"
+    End If
 End Sub
 
 ' ------------------------------------------------------------------------------

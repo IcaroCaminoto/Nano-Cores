@@ -34,7 +34,7 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
                                          ByVal idxCodigo As Long, _
                                          ByVal idxData As Long, _
                                          ByVal idxCusto As Long, _
-                                         Optional ByRef outTxCount As Object = Nothing) As Object
+                                         Optional ByRef outTxCount As Variant) As Object
     
     Dim dictSKUAvg As Object
     Dim dictTxCount As Object
@@ -66,7 +66,9 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     
     ' Defesa para conjunto vazio (Empty Set Defense)
     If IsEmpty(arrERPRaw) Then
-        If Not outTxCount Is Nothing Then Set outTxCount = dictTxCount
+        On Error Resume Next
+        Set outTxCount = dictTxCount
+        On Error GoTo 0
         Set ComputeSKUMovingAverages = dictSKUAvg
         Exit Function
     End If
@@ -115,8 +117,17 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
         End If
     Next rawCode
     
+    ' Popula diretamente o dicionário pré-instanciado pelo chamador ou atribui referência
     If Not outTxCount Is Nothing Then
+        outTxCount.RemoveAll
+        Dim k As Variant
+        For Each k In dictTxCount.Keys
+            outTxCount(k) = dictTxCount(k)
+        Next k
+    Else
+        On Error Resume Next
         Set outTxCount = dictTxCount
+        On Error GoTo 0
     End If
     
     Set ComputeSKUMovingAverages = dictSKUAvg
@@ -165,7 +176,9 @@ Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
     
     ' Defesa para conjunto vazio (Empty Set Defense)
     If IsEmpty(arrERPRaw) Then
-        If Not outTxCount Is Nothing Then Set outTxCount = dictTxCount
+        On Error Resume Next
+        Set outTxCount = dictTxCount
+        On Error GoTo 0
         Set ComputeSKULatestUpdate = dictSKUAvg
         Exit Function
     End If
@@ -212,8 +225,17 @@ Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
         dictTxCount(skuKey) = 1&
     Next rawCode
     
+    ' Popula diretamente o dicionário pré-instanciado pelo chamador ou atribui referência
     If Not outTxCount Is Nothing Then
+        outTxCount.RemoveAll
+        Dim k As Variant
+        For Each k In dictTxCount.Keys
+            outTxCount(k) = dictTxCount(k)
+        Next k
+    Else
+        On Error Resume Next
         Set outTxCount = dictTxCount
+        On Error GoTo 0
     End If
     
     Set ComputeSKULatestUpdate = dictSKUAvg
@@ -485,6 +507,10 @@ Public Sub Test_CostEngine_Calculator_SafeZone()
     ' 4. Executa cálculo de 90 dias
     Set dictSKUAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictTxCount)
     
+    If dictSKUAvg Is Nothing Or dictTxCount Is Nothing Then
+        Err.Raise vbObjectError + 3000, "Test_CostEngine_Calculator_SafeZone", "Falha: dictSKUAvg ou dictTxCount retornou Nothing."
+    End If
+    
     ' Asserções SKU (90D):
     ' 40001: (100 + 200) / 2 = 150.00 | Qtd = 2
     If dictSKUAvg("40001") <> 150# Or dictTxCount("40001") <> 2 Then
@@ -499,6 +525,11 @@ Public Sub Test_CostEngine_Calculator_SafeZone()
     Dim dictSnapAvg As Object
     Dim dictSnapCount As Object
     Set dictSnapAvg = ComputeSKULatestUpdate(mockERP, 1, 2, 3, dictSnapCount)
+    
+    If dictSnapAvg Is Nothing Or dictSnapCount Is Nothing Then
+        Err.Raise vbObjectError + 3009, "Test_CostEngine_Calculator_SafeZone", "Falha: dictSnapAvg ou dictSnapCount retornou Nothing."
+    End If
+    
     ' 40002 mais recente foi em Date - 2 com valor 170
     If dictSnapAvg("40002") <> 170# Or dictSnapCount("40002") <> 1 Then
         Err.Raise vbObjectError + 3003, "Test_CostEngine_Calculator_SafeZone", "Falha: Snapshot de 40002 incorreto."
