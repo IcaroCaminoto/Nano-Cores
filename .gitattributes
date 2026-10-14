@@ -1,0 +1,3 @@
+*.bas text eol=crlf
+*.cls text working-tree-encoding=cp1252 eol=crlf
+*.frm text working-tree-encoding=cp1252 eol=crlf

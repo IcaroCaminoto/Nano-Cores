@@ -1,0 +1,29 @@
+# Variáveis de ambiente e Segredos
+.env
+.env.*
+
+# Bancos de dados locais
+*.db
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Excel (e arquivos temporários do Excel)
+*.xlsx
+*.xlsm
+~$*.xlsx
+~$*.xlsm
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editores e Agentes Locais
+.agent/
+.vscode/
+
+# Builds e Caches (caso use Python ou Node)
+dist/
+__pycache__/
+*.pyc
+node_modules/
