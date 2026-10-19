@@ -1,32 +1,32 @@
 Attribute VB_Name = "mod_CostEngine_Calculator"
 ' ==============================================================================
-' MÔøΩdulo: mod_CostEngine_Calculator
+' MÛdulo: mod_CostEngine_Calculator
 ' Camada: Pure In-Memory Math Engine
-' Finalidade: Executar agregaÔøΩÔøΩes numÔøΩricas, filtro de janelas temporais mÔøΩveis,
-'             snapshot de ÔøΩltima atualizaÔøΩÔøΩo, resoluÔøΩÔøΩo de clusters familiares
-'             e montagem da matriz tabular de saÔøΩda orientada ao catÔøΩlogo mestre.
-' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatÔøΩvel)
-' Conformidade: SPEC-003 (SeÔøΩÔøΩes 1.3, 3.1, 3.2, 3.4, 3.5 e 4)
-' ProibiÔøΩÔøΩes: Zero chamadas a objetos de tela (Worksheets, Range, Cells, Application).
-'             100% isolado em memÔøΩria RAM via estruturas nativas (Variant e Scripting.Dictionary).
+' Finalidade: Executar agregaÁıes numÈricas, filtro de janelas temporais mÛveis,
+'             snapshot de ˙ltima atualizaÁ„o, resoluÁ„o de clusters familiares
+'             e montagem da matriz tabular de saÌda orientada ao cat·logo mestre.
+' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatÌvel)
+' Conformidade: SPEC-003 (SeÁıes 1.3, 3.1, 3.2, 3.4, 3.5 e 4)
+' ProibiÁıes: Zero chamadas a objetos de tela (Worksheets, Range, Cells, Application).
+'             100% isolado em memÛria RAM via estruturas nativas (Variant e Scripting.Dictionary).
 ' ==============================================================================
 
 Option Explicit
 
 ' ==============================================================================
-' FunÔøΩÔøΩo: ComputeSKUMovingAverages
-' Finalidade: Calcular a mÔøΩdia mÔøΩvel individual por SKU para janelas de dias
+' FunÁ„o: ComputeSKUMovingAverages
+' Finalidade: Calcular a mÈdia mÛvel individual por SKU para janelas de dias
 '             determinadas (30, 60, 90 dias) a partir da data de corte (Date - windowDays).
-' EquaÔøΩÔøΩo DeterminÔøΩstica (CritÔøΩrio 1):
+' EquaÁ„o DeterminÌstica (CritÈrio 1):
 '   Custo_Medio_SKU = (1 / c) * Sum(C_i)
-'   Caso c = 0 (sem lanÔøΩamentos), atribui 0.00 sem divisÔøΩo por zero.
-' ParÔøΩmetros:
+'   Caso c = 0 (sem lanÁamentos), atribui 0.00 sem divis„o por zero.
+' Par‚metros:
 '   - arrERPRaw: Matriz 2D Variant contendo os dados brutos a partir da linha 4.
-'   - windowDays (Long): Quantidade de dias da janela mÔøΩvel (ex: 30, 60, 90).
-'   - idxCodigo (Long): ÔøΩndice 1-based da coluna de cÔøΩdigo no arrERPRaw.
-'   - idxData (Long): ÔøΩndice 1-based da coluna de data de atualizaÔøΩÔøΩo no arrERPRaw.
-'   - idxCusto (Long): ÔøΩndice 1-based da coluna de custo gerencial no arrERPRaw.
-'   - outTxCount (Object ByRef, Opcional): DicionÔøΩrio retornado com SKU -> Qtd_Transacoes.
+'   - windowDays (Long): Quantidade de dias da janela mÛvel (ex: 30, 60, 90).
+'   - idxCodigo (Long): Õndice 1-based da coluna de cÛdigo no arrERPRaw.
+'   - idxData (Long): Õndice 1-based da coluna de data de atualizaÁ„o no arrERPRaw.
+'   - idxCusto (Long): Õndice 1-based da coluna de custo gerencial no arrERPRaw.
+'   - outTxCount (Object ByRef, Opcional): Dicion·rio retornado com SKU -> Qtd_Transacoes.
 ' Retorno: Scripting.Dictionary contendo SKU -> Custo_Medio_SKU (Double, 2 decimais).
 ' ==============================================================================
 Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
@@ -42,7 +42,7 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     Set dictSums = CreateObject("Scripting.Dictionary")
     Set dictAvg = CreateObject("Scripting.Dictionary")
     
-    ' 1. Instancia√ß√£o e vincula√ß√£o do objeto de sa√≠da ByRef
+    ' 1. InstanciaÁ„o e vinculaÁ„o do objeto de saÌda ByRef
     Set outTxCount = CreateObject("Scripting.Dictionary")
     dictSums.CompareMode = vbTextCompare
     dictAvg.CompareMode = vbTextCompare
@@ -66,7 +66,7 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     Dim rawDate As Date
     Dim valCell As Variant
 
-    ' 2. Varredura do extrato com normaliza√ß√£o estrita de tipos
+    ' 2. Varredura do extrato com normalizaÁ„o estrita de tipos
     For r = rStart To rEnd
         valCell = arrERPRaw(r, idxCod)
         If Not IsError(valCell) And Not IsEmpty(valCell) Then
@@ -78,21 +78,21 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
                 If IsDate(valCell) Then
                     rawDate = CDate(valCell)
                     
-                    ' Filtro da janela m√≥vel
+                    ' Filtro da janela mÛvel
                     If rawDate >= cutoffDate Then
                         valCell = arrERPRaw(r, idxCost)
                         
                         If IsNumeric(valCell) Then
                             rawCost = CDbl(valCell)
                             
-                            ' Ac√∫mulo de soma
+                            ' Ac˙mulo de soma
                             If dictSums.Exists(rawSKU) Then
                                 dictSums(rawSKU) = dictSums(rawSKU) + rawCost
                             Else
                                 dictSums.Add rawSKU, rawCost
                             End If
                             
-                            ' Ac√∫mulo estrutural de contagem
+                            ' Ac˙mulo estrutural de contagem
                             If outTxCount.Exists(rawSKU) Then
                                 outTxCount(rawSKU) = CLng(outTxCount(rawSKU)) + 1
                             Else
@@ -105,7 +105,7 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
         End If
     Next r
 
-    ' 3. Consolida√ß√£o das m√©dias (Soma / Contagem)
+    ' 3. ConsolidaÁ„o das mÈdias (Soma / Contagem)
     Dim skuKey As Variant
     Dim txTotal As Long
     Dim sumTotal As Double
@@ -128,20 +128,20 @@ CalcErrorHandler:
     Dim errDesc As String: errDesc = Err.Description
     Dim errNum As Long: errNum = Err.Number
     Err.Raise errNum, "mod_CostEngine_Calculator.ComputeSKUMovingAverages", _
-              "Falha no c√°lculo de m√©dias m√≥veis: " & errDesc
+              "Falha no c·lculo de mÈdias mÛveis: " & errDesc
 End Function
 
 ' ==============================================================================
-' FunÔøΩÔøΩo: ComputeSKULatestUpdate
-' Finalidade: Isolar o registro com a maior Data AtualizaÔøΩÔøΩo por SKU (Snapshot
-'             "ÔøΩltima AtualizaÔøΩÔøΩo") e atribuir como custo de referÔøΩncia.
-' Diagrama: SPEC-003, SeÔøΩÔøΩo 3.5
-' ParÔøΩmetros:
+' FunÁ„o: ComputeSKULatestUpdate
+' Finalidade: Isolar o registro com a maior Data AtualizaÁ„o por SKU (Snapshot
+'             "⁄ltima AtualizaÁ„o") e atribuir como custo de referÍncia.
+' Diagrama: SPEC-003, SeÁ„o 3.5
+' Par‚metros:
 '   - arrERPRaw: Matriz 2D Variant contendo os dados brutos a partir da linha 4.
-'   - idxCodigo (Long): ÔøΩndice 1-based da coluna de cÔøΩdigo no arrERPRaw.
-'   - idxData (Long): ÔøΩndice 1-based da coluna de data de atualizaÔøΩÔøΩo no arrERPRaw.
-'   - idxCusto (Long): ÔøΩndice 1-based da coluna de custo gerencial no arrERPRaw.
-'   - outTxCount (Object ByRef, Opcional): DicionÔøΩrio retornado com SKU -> Qtd_Transacoes.
+'   - idxCodigo (Long): Õndice 1-based da coluna de cÛdigo no arrERPRaw.
+'   - idxData (Long): Õndice 1-based da coluna de data de atualizaÁ„o no arrERPRaw.
+'   - idxCusto (Long): Õndice 1-based da coluna de custo gerencial no arrERPRaw.
+'   - outTxCount (Object ByRef, Opcional): Dicion·rio retornado com SKU -> Qtd_Transacoes.
 ' Retorno: Scripting.Dictionary contendo SKU -> Custo_Medio_SKU (Double, 2 decimais).
 ' ==============================================================================
 Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
@@ -213,20 +213,20 @@ LatestErrorHandler:
     Dim errDesc As String: errDesc = Err.Description
     Dim errNum As Long: errNum = Err.Number
     Err.Raise errNum, "mod_CostEngine_Calculator.ComputeSKULatestUpdate", _
-              "Falha no snapshot de √∫ltima atualiza√ß√£o: " & errDesc
+              "Falha no snapshot de ˙ltima atualizaÁ„o: " & errDesc
 End Function
 
 ' ==============================================================================
-' FunÔøΩÔøΩo: ComputeFamilyAverages
-' Finalidade: Resolver famÔøΩlias e calcular mÔøΩdias agregadas dos clusters taxonÔøΩmicos.
+' FunÁ„o: ComputeFamilyAverages
+' Finalidade: Resolver famÌlias e calcular mÈdias agregadas dos clusters taxonÙmicos.
 ' Contrato de Algoritmo:
-'   1. ResoluÔøΩÔøΩo de ÔøΩrfÔøΩos: SKUs do Cadastro Mestre sem cluster recebem cluster unitÔøΩrio
+'   1. ResoluÁ„o de ”rf„os: SKUs do Cadastro Mestre sem cluster recebem cluster unit·rio
 '      (Cod_Familia = Cod_Produto, Custo_Medio_Familia = Custo_Medio_SKU).
-'   2. ConsolidaÔøΩÔøΩo Reflexiva: MÔøΩdia ponderada com o SKU Pai e seus respectivos Filhos.
-' ParÔøΩmetros:
+'   2. ConsolidaÁ„o Reflexiva: MÈdia ponderada com o SKU Pai e seus respectivos Filhos.
+' Par‚metros:
 '   - dictClusters (Object): Scripting.Dictionary Cod_Pai -> SubDict com Membros.
 '   - dictSKUAvg (Object): Scripting.Dictionary SKU -> Custo_Medio_SKU.
-'   - dictProductMaster (Object): Scripting.Dictionary SKU -> DescriÔøΩÔøΩo.
+'   - dictProductMaster (Object): Scripting.Dictionary SKU -> DescriÁ„o.
 '   - dictFamilyMap (Object): Scripting.Dictionary SKU -> Cod_Pai.
 ' Retorno: Scripting.Dictionary Cod_Pai -> Custo_Medio_Familia.
 ' ==============================================================================
@@ -249,8 +249,8 @@ Public Function ComputeFamilyAverages(ByRef dictClusters As Object, _
     dictFamilyAvg.CompareMode = vbTextCompare
     
     ' --------------------------------------------------------------------------
-    ' Etapa 1: ResoluÔøΩÔøΩo de ÔøΩrfÔøΩos (Cadastro Mestre vs. Cluster)
-    ' CritÔøΩrio 9: Se o produto nÔøΩo possui vÔøΩnculo, Cod_Familia = Cod_Produto
+    ' Etapa 1: ResoluÁ„o de ”rf„os (Cadastro Mestre vs. Cluster)
+    ' CritÈrio 9: Se o produto n„o possui vÌnculo, Cod_Familia = Cod_Produto
     ' --------------------------------------------------------------------------
     If Not dictProductMaster Is Nothing Then
         For Each skuItem In dictProductMaster.Keys
@@ -270,7 +270,7 @@ Public Function ComputeFamilyAverages(ByRef dictClusters As Object, _
     End If
     
     ' --------------------------------------------------------------------------
-    ' Etapa 2: ConsolidaÔøΩÔøΩo da MÔøΩdia do Cluster (Pai + Filhos)
+    ' Etapa 2: ConsolidaÁ„o da MÈdia do Cluster (Pai + Filhos)
     ' --------------------------------------------------------------------------
     For Each parentKey In dictClusters.Keys
         clusterSum = 0#
@@ -300,14 +300,14 @@ Public Function ComputeFamilyAverages(ByRef dictClusters As Object, _
 End Function
 
 ' ==============================================================================
-' FunÔøΩÔøΩo: BuildFinalOutputMatrix
-' Finalidade: Executar o loop diretor orientado ao Cadastro Mestre (Left Join SemÔøΩntico)
-'             e montar a matriz 2D Variant pronta para persistÔøΩncia em bloco ÔøΩnico.
-' DimensÔøΩo: (1 To dictMaster.Count, 1 To 7)
+' FunÁ„o: BuildFinalOutputMatrix
+' Finalidade: Executar o loop diretor orientado ao Cadastro Mestre (Left Join Sem‚ntico)
+'             e montar a matriz 2D Variant pronta para persistÍncia em bloco ˙nico.
+' Dimens„o: (1 To dictMaster.Count, 1 To 7)
 ' Colunas:
 '   1. Cod_Produto
 '   2. Descricao_Produto
-'   3. Custo_Medio_SKU (0.00 se sem histÔøΩrico)
+'   3. Custo_Medio_SKU (0.00 se sem histÛrico)
 '   4. Custo_Medio_Familia
 '   5. Qtd_Transacoes_SKU
 '   6. Janela_Dias_Base ("ULT", "30D", "60D", "90D")
@@ -321,10 +321,10 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
                                       ByRef dictTxCount As Object) As Variant
     On Error GoTo BuildMatrixErrorHandler
 
-    ' 1. Valida√ß√£o defensiva do condutor principal (Spine)
+    ' 1. ValidaÁ„o defensiva do condutor principal (Spine)
     If dictMaster Is Nothing Then
         Err.Raise vbObjectError + 5101, "mod_CostEngine_Calculator.BuildFinalOutputMatrix", _
-                  "O cat√°logo mestre (dictMaster) n√£o foi inicializado."
+                  "O cat·logo mestre (dictMaster) n„o foi inicializado."
     End If
 
     Dim totalRows As Long
@@ -335,11 +335,11 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
         Exit Function
     End If
 
-    ' 2. Dimensionamento da matriz em mem√≥ria: (1 To N, 1 To 7 Colunas Contratuais)
+    ' 2. Dimensionamento da matriz em memÛria: (1 To N, 1 To 7 Colunas Contratuais)
     Dim outArray() As Variant
     ReDim outArray(1 To totalRows, 1 To 7)
 
-    ' 3. Resolu√ß√£o da etiqueta da janela temporal (Janela_Dias_Base)
+    ' 3. ResoluÁ„o da etiqueta da janela temporal (Janela_Dias_Base)
     Dim windowLabel As String
     If windowDays <= 0 Then
         windowLabel = "ULT"
@@ -350,7 +350,7 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
     Dim procTimestamp As Date
     procTimestamp = Now
 
-    ' 4. Vari√°veis de itera√ß√£o e leitura
+    ' 4. Vari·veis de iteraÁ„o e leitura
     Dim i As Long: i = 1
     Dim skuKey As Variant
     Dim skuCode As String
@@ -365,18 +365,18 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
         skuCode = Trim$(CStr(skuKey))
         skuDesc = Trim$(CStr(dictMaster(skuKey)))
 
-        ' --- A. Resolu√ß√£o taxon√¥mica da fam√≠lia (Pai / √ìrf√£o) ---
+        ' --- A. ResoluÁ„o taxonÙmica da famÌlia (Pai / ”rf„o) ---
         If Not dictFamilyMap Is Nothing Then
             If dictFamilyMap.Exists(skuCode) Then
                 parentCode = Trim$(CStr(dictFamilyMap(skuCode)))
             Else
-                parentCode = skuCode ' √ìrf√£o √© pai de si mesmo
+                parentCode = skuCode ' ”rf„o È pai de si mesmo
             End If
         Else
             parentCode = skuCode
         End If
 
-        ' --- B. Resolu√ß√£o defensiva do custo individual do SKU ---
+        ' --- B. ResoluÁ„o defensiva do custo individual do SKU ---
         skuCost = 0#
         If Not dictSKUAvg Is Nothing Then
             If dictSKUAvg.Exists(skuCode) Then
@@ -384,17 +384,17 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
             End If
         End If
 
-        ' --- C. Resolu√ß√£o defensiva do custo da fam√≠lia ---
+        ' --- C. ResoluÁ„o defensiva do custo da famÌlia ---
         famCost = 0#
         If Not dictFamilyAvg Is Nothing Then
             If dictFamilyAvg.Exists(parentCode) Then
                 famCost = CDbl(dictFamilyAvg(parentCode))
             Else
-                famCost = skuCost ' Fallback para √≥rf√£o sem c√°lculo de cluster
+                famCost = skuCost ' Fallback para Ûrf„o sem c·lculo de cluster
             End If
         End If
 
-        ' --- D. Resolu√ß√£o defensiva da contagem de transa√ß√µes (dictTxCount) ---
+        ' --- D. ResoluÁ„o defensiva da contagem de transaÁıes (dictTxCount) ---
         txCount = 0&
         If Not dictTxCount Is Nothing Then
             If dictTxCount.Exists(skuCode) Then
@@ -403,13 +403,13 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
         End If
 
         ' --- E. Povoamento das 7 colunas contratuais (SPEC-003) ---
-        outArray(i, 1) = skuCode                                    ' Col 1: Cod_Produto
-        outArray(i, 2) = IIf(Len(skuDesc) > 0, skuDesc, "Sem Descri√ß√£o") ' Col 2: Descricao_Produto
-        outArray(i, 3) = skuCost                                    ' Col 3: Custo_Medio_SKU
-        outArray(i, 4) = famCost                                    ' Col 4: Custo_Medio_Familia
-        outArray(i, 5) = txCount                                    ' Col 5: Qtd_Transacoes_SKU
-        outArray(i, 6) = windowLabel                                ' Col 6: Janela_Dias_Base
-        outArray(i, 7) = procTimestamp                              ' Col 7: Data_Processamento
+        outArray(i, 1) = skuCode                                         ' Col 1: Cod_Produto
+        outArray(i, 2) = IIf(Len(skuDesc) > 0, skuDesc, "Sem DescriÁ„o") ' Col 2: Descricao_Produto
+        outArray(i, 3) = skuCost                                         ' Col 3: Custo_Medio_SKU
+        outArray(i, 4) = famCost                                         ' Col 4: Custo_Medio_Familia
+        outArray(i, 5) = txCount                                         ' Col 5: Qtd_Transacoes_SKU
+        outArray(i, 6) = windowLabel                                     ' Col 6: Janela_Dias_Base
+        outArray(i, 7) = procTimestamp                                   ' Col 7: Data_Processamento
 
         i = i + 1
     Next skuKey
@@ -421,11 +421,11 @@ BuildMatrixErrorHandler:
     Dim errDesc As String: errDesc = Err.Description
     Dim errNum As Long: errNum = Err.Number
     Err.Raise errNum, "mod_CostEngine_Calculator.BuildFinalOutputMatrix", _
-              "Falha na montagem da matriz de sa√≠da: " & errDesc
+              "Falha na montagem da matriz de saÌda: " & errDesc
 End Function
 
 ' ==============================================================================
-' FunÔøΩÔøΩes Auxiliares Privadas de ConversÔøΩo Segura
+' FunÁıes Auxiliares Privadas de Convers„o Segura
 ' ==============================================================================
 Private Function TryParseDate(ByVal valInput As Variant, ByRef outDate As Date) As Boolean
     On Error Resume Next
@@ -450,7 +450,7 @@ Private Function TryParseCost(ByVal valInput As Variant, ByRef outCost As Double
     
     If VarType(valInput) = vbString Then
         strVal = Trim$(CStr(valInput))
-        ' Tratamento de separador decimal regional (substitui vÔøΩrgula por ponto)
+        ' Tratamento de separador decimal regional (substitui vÌrgula por ponto)
         strVal = Replace(strVal, "R$", "")
         strVal = Replace(strVal, " ", "")
         strVal = Replace(strVal, ",", ".")
@@ -467,7 +467,7 @@ End Function
 
 ' ==============================================================================
 ' Procedimento SafeZone: Test_CostEngine_Calculator_SafeZone
-' Finalidade: Auditoria asseriva do motor matemÔøΩtico contra fixtures sintÔøΩticas.
+' Finalidade: Auditoria assertiva do motor matem·tico contra fixtures sintÈticas.
 ' ==============================================================================
 Private Sub Test_CostEngine_Calculator_SafeZone()
     Dim mockMaster As Object
@@ -485,7 +485,7 @@ Private Sub Test_CostEngine_Calculator_SafeZone()
     mockMaster("40002") = "PRODUTO DERIVADO FILHO"
     mockMaster("40099") = "PRODUTO ORFAO SEM HISTORICO"
     
-    ' 2. Cria AssociaÔøΩÔøΩo: 40001 ÔøΩ Pai de 40002
+    ' 2. Cria AssociaÁ„o: 40001 È Pai de 40002
     Set mockFamilyMap = CreateObject("Scripting.Dictionary")
     mockFamilyMap("40001") = "40001"
     mockFamilyMap("40002") = "40001"
@@ -495,33 +495,33 @@ Private Sub Test_CostEngine_Calculator_SafeZone()
     mockClusters("40001")("40001") = True
     mockClusters("40001")("40002") = True
     
-    ' 3. Fixture SintÔøΩtica do ERP
+    ' 3. Fixture SintÈtica do ERP
     ' Col 1: Codigo | Col 2: Data | Col 3: Custo
-    mockERP(1, 1) = "40001": mockERP(1, 2) = Date - 10: mockERP(1, 3) = 100#
-    mockERP(2, 1) = "40001": mockERP(2, 2) = Date - 20: mockERP(2, 3) = 200#
-    mockERP(3, 1) = "40002": mockERP(3, 2) = Date - 5:  mockERP(3, 3) = 150#
+    mockERP(1, 1) = "40001": mockERP(1, 2) = Date - 10:  mockERP(1, 3) = 100#
+    mockERP(2, 1) = "40001": mockERP(2, 2) = Date - 20:  mockERP(2, 3) = 200#
+    mockERP(3, 1) = "40002": mockERP(3, 2) = Date - 5:   mockERP(3, 3) = 150#
     mockERP(4, 1) = "40001": mockERP(4, 2) = Date - 100: mockERP(4, 3) = 500# ' Fora da janela de 90D
-    mockERP(5, 1) = "99999": mockERP(5, 2) = Date - 1:  mockERP(5, 3) = 300# ' SKU fora do mestre
-    mockERP(6, 1) = "40002": mockERP(6, 2) = Date - 2:  mockERP(6, 3) = 170# ' LanÔøΩamento mais recente para snapshot
+    mockERP(5, 1) = "99999": mockERP(5, 2) = Date - 1:   mockERP(5, 3) = 300# ' SKU fora do mestre
+    mockERP(6, 1) = "40002": mockERP(6, 2) = Date - 2:   mockERP(6, 3) = 170# ' LanÁamento mais recente para snapshot
     
-    ' 4. Executa cÔøΩlculo de 90 dias
+    ' 4. Executa c·lculo de 90 dias
     Set dictSKUAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictTxCount)
     
     If dictSKUAvg Is Nothing Or dictTxCount Is Nothing Then
         Err.Raise vbObjectError + 3000, "Test_CostEngine_Calculator_SafeZone", "Falha: dictSKUAvg ou dictTxCount retornou Nothing."
     End If
     
-    ' AsserÔøΩÔøΩes SKU (90D):
+    ' AsserÁıes SKU (90D):
     ' 40001: (100 + 200) / 2 = 150.00 | Qtd = 2
     If dictSKUAvg("40001") <> 150# Or dictTxCount("40001") <> 2 Then
-        Err.Raise vbObjectError + 3001, "Test_CostEngine_Calculator_SafeZone", "Falha: MÔøΩdia de 40001 incorreta."
+        Err.Raise vbObjectError + 3001, "Test_CostEngine_Calculator_SafeZone", "Falha: MÈdia de 40001 incorreta."
     End If
     ' 40002: (150 + 170) / 2 = 160.00 | Qtd = 2
     If dictSKUAvg("40002") <> 160# Or dictTxCount("40002") <> 2 Then
-        Err.Raise vbObjectError + 3002, "Test_CostEngine_Calculator_SafeZone", "Falha: MÔøΩdia de 40002 incorreta."
+        Err.Raise vbObjectError + 3002, "Test_CostEngine_Calculator_SafeZone", "Falha: MÈdia de 40002 incorreta."
     End If
     
-    ' 5. Executa teste de Snapshot de ÔøΩltima AtualizaÔøΩÔøΩo
+    ' 5. Executa teste de Snapshot de ⁄ltima AtualizaÁ„o
     Dim dictSnapAvg As Object
     Dim dictSnapCount As Object
     Set dictSnapAvg = ComputeSKULatestUpdate(mockERP, 1, 2, 3, dictSnapCount)
@@ -535,90 +535,90 @@ Private Sub Test_CostEngine_Calculator_SafeZone()
         Err.Raise vbObjectError + 3003, "Test_CostEngine_Calculator_SafeZone", "Falha: Snapshot de 40002 incorreto."
     End If
     
-    ' 6. Executa consolidaÔøΩÔøΩo de famÔøΩlias
+    ' 6. Executa consolidaÁ„o de famÌlias
     Set dictFamilyAvg = ComputeFamilyAverages(mockClusters, dictSKUAvg, mockMaster, mockFamilyMap)
     
-    ' FamÔøΩlia 40001: MÔøΩdia de (150 + 160) / 2 = 155.00
+    ' FamÌlia 40001: MÈdia de (150 + 160) / 2 = 155.00
     If dictFamilyAvg("40001") <> 155# Then
-        Err.Raise vbObjectError + 3004, "Test_CostEngine_Calculator_SafeZone", "Falha: MÔøΩdia da FamÔøΩlia 40001 incorreta."
+        Err.Raise vbObjectError + 3004, "Test_CostEngine_Calculator_SafeZone", "Falha: MÈdia da FamÌlia 40001 incorreta."
     End If
     
-    ' ÔøΩrfÔøΩo 40099: deve ter virado famÔøΩlia de si mesmo e ter mÔøΩdia 0.00
+    ' ”rf„o 40099: deve ter virado famÌlia de si mesmo e ter mÈdia 0.00
     If Not mockFamilyMap.Exists("40099") Then
-        Err.Raise vbObjectError + 3005, "Test_CostEngine_Calculator_SafeZone", "Falha: ÔøΩrfÔøΩo nÔøΩo registrado no mapa de famÔøΩlias."
+        Err.Raise vbObjectError + 3005, "Test_CostEngine_Calculator_SafeZone", "Falha: ”rf„o n„o registrado no mapa de famÌlias."
     End If
     If dictFamilyAvg("40099") <> 0# Then
-        Err.Raise vbObjectError + 3006, "Test_CostEngine_Calculator_SafeZone", "Falha: MÔøΩdia da FamÔøΩlia ÔøΩrfÔøΩ deve ser 0.00."
+        Err.Raise vbObjectError + 3006, "Test_CostEngine_Calculator_SafeZone", "Falha: MÈdia da FamÌlia ”rf„ deve ser 0.00."
     End If
     
     ' 7. Montagem da matriz final
     outMatrix = BuildFinalOutputMatrix(mockMaster, dictSKUAvg, dictFamilyAvg, mockFamilyMap, 90, dictTxCount)
     
     If UBound(outMatrix, 1) <> 3 Or UBound(outMatrix, 2) <> 7 Then
-        Err.Raise vbObjectError + 3007, "Test_CostEngine_Calculator_SafeZone", "Falha: DimensÔøΩo da matriz de saÔøΩda invÔøΩlida."
+        Err.Raise vbObjectError + 3007, "Test_CostEngine_Calculator_SafeZone", "Falha: Dimens„o da matriz de saÌda inv·lida."
     End If
     
-    ' AsserÔøΩÔøΩo do SKU sem histÔøΩrico na matriz final: Custo_Medio_SKU = 0.00, Qtd = 0
+    ' AsserÁ„o do SKU sem histÛrico na matriz final: Custo_Medio_SKU = 0.00, Qtd = 0
     If outMatrix(3, 3) <> 0# Or outMatrix(3, 5) <> 0 Then
-        Err.Raise vbObjectError + 3008, "Test_CostEngine_Calculator_SafeZone", "Falha: SKU sem histÔøΩrico nÔøΩo recebeu 0.00."
+        Err.Raise vbObjectError + 3008, "Test_CostEngine_Calculator_SafeZone", "Falha: SKU sem histÛrico n„o recebeu 0.00."
     End If
     
-    Debug.Print "[PASS] Test_CostEngine_Calculator_SafeZone concluÔøΩdo com 100% de sucesso nas asserÔøΩÔøΩes."
+    Debug.Print "[PASS] Test_CostEngine_Calculator_SafeZone concluÌdo com 100% de sucesso nas asserÁıes."
 End Sub
 
 Private Sub Run_GuardRails_Verification()
-    Debug.Print "=== INICIANDO AUDITORIA DE CONTATOS E CONTAGEM ==="
+    Debug.Print "=== INICIANDO AUDITORIA DE CONTRATOS E CONTAGEM ==="
 
-    ' Fixture Sint√©tica: 4 registros (2 v√°lidos dentro da janela, 1 fora, 1 outro SKU)
+    ' Fixture SintÈtica: 4 registros (2 v·lidos dentro da janela, 1 fora, 1 outro SKU)
     Dim mockERP(1 To 4, 1 To 3) As Variant
     Dim today As Date: today = Date
     
-    ' SKU-01: 2 compras recentes (100.00 e 200.00) -> M√©dia Esperada: 150.00 | Qtd: 2
+    ' SKU-01: 2 compras recentes (100.00 e 200.00) -> MÈdia Esperada: 150.00 | Qtd: 2
     mockERP(1, 1) = "40001": mockERP(1, 2) = today - 10: mockERP(1, 3) = 100#
-    mockERP(2, 1) = 40001:   mockERP(2, 2) = today - 30: mockERP(2, 3) = 200# ' Teste de chave num√©rica
+    mockERP(2, 1) = 40001:   mockERP(2, 2) = today - 30: mockERP(2, 3) = 200# ' Teste de chave numÈrica
     
     ' SKU-01: 1 compra antiga (fora da janela de 90 dias) -> Deve ser descartada
     mockERP(3, 1) = "40001": mockERP(3, 2) = today - 95: mockERP(3, 3) = 999#
     
-    ' SKU-02: 1 compra recente (50.00) -> M√©dia Esperada: 50.00 | Qtd: 1
+    ' SKU-02: 1 compra recente (50.00) -> MÈdia Esperada: 50.00 | Qtd: 1
     mockERP(4, 1) = "40002": mockERP(4, 2) = today - 5:  mockERP(4, 3) = 50#
 
     Dim dictCounts As Object
     Dim dictAvgs As Object
 
-    ' Execu√ß√£o do Motor de C√°lculo
+    ' ExecuÁ„o do Motor de C·lculo
     Set dictAvgs = mod_CostEngine_Calculator.ComputeSKUMovingAverages( _
                        mockERP, 90, 1, 2, 3, dictCounts)
 
-    ' Guard-Rail 1: Instancia√ß√£o do Ponteiro ByRef
+    ' Guard-Rail 1: InstanciaÁ„o do Ponteiro ByRef
     If dictCounts Is Nothing Then
-        Debug.Print "‚ùå FALHA G-1: dictCounts retornou Nothing!"
+        Debug.Print "[ERRO] FALHA G-1: dictCounts retornou Nothing!"
     Else
-        Debug.Print "‚úÖ SUCESSO G-1: dictCounts instanciado corretamente."
+        Debug.Print "[OK] SUCESSO G-1: dictCounts instanciado corretamente."
     End If
 
-    ' Guard-Rail 2: Acur√°cia da Contagem com Chaves Heterog√™neas (String vs Double)
+    ' Guard-Rail 2: Acur·cia da Contagem com Chaves HeterogÍneas (String vs Double)
     If dictCounts("40001") = 2 Then
-        Debug.Print "‚úÖ SUCESSO G-2: SKU '40001' acumulou 2 transa√ß√µes (filtro temporal e tipagem OK)."
+        Debug.Print "[OK] SUCESSO G-2: SKU '40001' acumulou 2 transaÁıes (filtro temporal e tipagem OK)."
     Else
-        Debug.Print "‚ùå FALHA G-2: Esperado 2, obtido: " & dictCounts("40001")
+        Debug.Print "[ERRO] FALHA G-2: Esperado 2, obtido: " & dictCounts("40001")
     End If
 
-    ' Guard-Rail 3: Acur√°cia da M√©dia Ponderada por Contagem
+    ' Guard-Rail 3: Acur·cia da MÈdia Ponderada por Contagem
     If dictAvgs("40001") = 150# Then
-        Debug.Print "‚úÖ SUCESSO G-3: Custo m√©dio de '40001' apurado exatamente em R$ 150,00."
+        Debug.Print "[OK] SUCESSO G-3: Custo mÈdio de '40001' apurado exatamente em R$ 150,00."
     Else
-        Debug.Print "‚ùå FALHA G-3: Esperado 150.00, obtido: " & dictAvgs("40001")
+        Debug.Print "[ERRO] FALHA G-3: Esperado 150.00, obtido: " & dictAvgs("40001")
     End If
 
     ' Guard-Rail 4: Isolamento de SKU Adjacente
     If dictCounts("40002") = 1 And dictAvgs("40002") = 50# Then
-        Debug.Print "‚úÖ SUCESSO G-4: SKU '40002' computado com Qtd: 1 e Custo: R$ 50,00."
+        Debug.Print "[OK] SUCESSO G-4: SKU '40002' computado com Qtd: 1 e Custo: R$ 50,00."
     Else
-        Debug.Print "‚ùå FALHA G-4: Inconsist√™ncia no SKU '40002'."
+        Debug.Print "[ERRO] FALHA G-4: InconsistÍncia no SKU '40002'."
     End If
 
-    Debug.Print "=== AUDITORIA CONCLU√çDA COM 0 FALHAS ==="
+    Debug.Print "=== AUDITORIA CONCLUÕDA COM 0 FALHAS ==="
 End Sub
 
 Private Sub GuardRail_Test_BuildMatrix()
@@ -628,27 +628,27 @@ Private Sub GuardRail_Test_BuildMatrix()
     Dim dFamMap As Object: Set dFamMap = CreateObject("Scripting.Dictionary")
     Dim dCount As Object:  Set dCount = CreateObject("Scripting.Dictionary")
 
-    ' Fixture de 2 produtos: 1 com dados e 1 sem dados (√≥rf√£o)
+    ' Fixture de 2 produtos: 1 com dados e 1 sem dados (Ûrf„o)
     dMaster.Add "40001", "PRODUTO TESTE COM MOVIMENTO"
     dMaster.Add "40002", "PRODUTO TESTE SEM MOVIMENTO"
 
     dFamMap.Add "40001", "40001"
     
-    dSKUAvg.Add "40001", 125.50
-    dFamAvg.Add "40001", 125.50
+    dSKUAvg.Add "40001", 125.5
+    dFamAvg.Add "40001", 125.5
     dCount.Add "40001", 5&
 
     Dim mOut As Variant
     mOut = mod_CostEngine_Calculator.BuildFinalOutputMatrix(dMaster, dSKUAvg, dFamAvg, dFamMap, 90, dCount)
 
-    ' Asser√ß√µes:
+    ' AsserÁıes:
     Debug.Print "--- TESTE CONSTRUTOR DE MATRIZ ---"
     Debug.Print "Linha 1 - SKU: " & mOut(1, 1) & " | Qtd: " & mOut(1, 5) & " (Esperado: 5) | Custo: " & mOut(1, 3)
     Debug.Print "Linha 2 - SKU: " & mOut(2, 1) & " | Qtd: " & mOut(2, 5) & " (Esperado: 0) | Custo: " & mOut(2, 3)
     
-    If mOut(1, 5) = 5 And mOut(2, 5) = 0 And mOut(1, 3) = 125.50 And mOut(2, 3) = 0# Then
-        Debug.Print "‚úÖ SUCESSO: Construtor alinhado e defensivo!"
+    If mOut(1, 5) = 5 And mOut(2, 5) = 0 And mOut(1, 3) = 125.5 And mOut(2, 3) = 0# Then
+        Debug.Print "[OK] SUCESSO: Construtor alinhado e defensivo!"
     Else
-        Debug.Print "‚ùå FALHA: Diverg√™ncia na matriz montada."
+        Debug.Print "[ERRO] FALHA: DivergÍncia na matriz montada."
     End If
 End Sub

@@ -1,27 +1,27 @@
 Attribute VB_Name = "mod_CostEngine_Persistence"
 ' ==============================================================================
-' Mï¿½dulo: mod_CostEngine_Persistence
+' Módulo: mod_CostEngine_Persistence
 ' Camada: Output & Table Formatting (Persistence Layer)
 ' Finalidade: Gerenciar a pasta de trabalho de destino Cerulean_DB_Custos.xlsx,
-'             validar travas de concorrï¿½ncia via acesso binï¿½rio exclusivo,
-'             criar nova aba com timestamp, realizar despejo em bloco ï¿½nico (.Value2),
-'             converter para ListObject estruturado e aplicar formataï¿½ï¿½es estritas.
-' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatï¿½vel)
-' Conformidade: SPEC-003 (Seï¿½ï¿½es 1.3, 2 Output Contract 01, 4 e 5.2 Step 4)
-' Proibiï¿½ï¿½es: Nï¿½o recalcula mï¿½dias; apenas persiste e formata estruturadamente.
+'             validar travas de concorrência via acesso binário exclusivo,
+'             criar nova aba com timestamp, realizar despejo em bloco único (.Value2),
+'             converter para ListObject estruturado e aplicar formatações estritas.
+' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatível)
+' Conformidade: SPEC-003 (Seções 1.3, 2 Output Contract 01, 4 e 5.2 Step 4)
+' Proibições: Não recalcula médias; apenas persiste e formata estruturadamente.
 ' ==============================================================================
 
 Option Explicit
 
 ' ------------------------------------------------------------------------------
-' Constante do caminho padrï¿½o de destino
+' Constante do caminho padrão de destino
 ' ------------------------------------------------------------------------------
-Public Const DB_COSTS_FILE As String = "G:\Ãcaro\Cerulean_DB\sheets\database\Cerulean_DB_Custos.xlsx"
+Public Const DB_COSTS_FILE As String = "G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Custos.xlsx"
 
 ' ==============================================================================
-' Funï¿½ï¿½o: CheckFileLock
-' Finalidade: Testar se o arquivo fï¿½sico de destino estï¿½ aberto e bloqueado por outro
-'             processo ou usuï¿½rio na rede via tentativa de abertura binï¿½ria exclusiva.
+' Função: CheckFileLock
+' Finalidade: Testar se o arquivo físico de destino está aberto e bloqueado por outro
+'             processo ou usuário na rede via tentativa de abertura binária exclusiva.
 ' Retorno: Boolean (True se o arquivo estiver bloqueado/em uso; False se liberado).
 ' ==============================================================================
 Public Function CheckFileLock(ByVal fullPath As String) As Boolean
@@ -40,7 +40,7 @@ Public Function CheckFileLock(ByVal fullPath As String) As Boolean
     Close #fileNum
     On Error GoTo 0
     
-    ' Se ocorrer erro (ex: 70 - Permission Denied ou 55 - File already open), o arquivo estï¿½ travado
+    ' Se ocorrer erro (ex: 70 - Permission Denied ou 55 - File already open), o arquivo está travado
     If errNum <> 0 Then
         CheckFileLock = True
     Else
@@ -51,11 +51,11 @@ End Function
 ' ==============================================================================
 ' Procedimento: PersistToDatabase
 ' Finalidade: Abrir o banco de dados de custos em segundo plano, gerar uma nova
-'             Worksheet com timestamp dinï¿½mico, descarregar cabeï¿½alhos e matriz de
-'             dados em bloco ï¿½nico (.Value2), converter para ListObject e formatar.
-' Parï¿½metros:
+'             Worksheet com timestamp dinâmico, descarregar cabeçalhos e matriz de
+'             dados em bloco único (.Value2), converter para ListObject e formatar.
+' Parâmetros:
 '   - outputMatrix (Variant ByRef): Matriz 2D (1 To N, 1 To 7) gerada pelo Calculator.
-'   - windowDays (Long): Quantidade de dias da janela mï¿½vel (30, 60, 90) ou 0 para ULT.
+'   - windowDays (Long): Quantidade de dias da janela móvel (30, 60, 90) ou 0 para ULT.
 '   - customFilePath (String, Opcional): Caminho customizado da pasta Cerulean_DB_Custos.xlsx.
 ' ==============================================================================
 Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
@@ -80,10 +80,10 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     Dim loCustos As ListObject
     Dim arrHeaders(1 To 1, 1 To 7) As Variant
     
-    ' 1. Validaï¿½ï¿½o da matriz de entrada
+    ' 1. Validação da matriz de entrada
     If IsEmpty(outputMatrix) Then
         Err.Raise vbObjectError + 4002, "mod_CostEngine_Persistence.PersistToDatabase", _
-                  "A matriz de saï¿½da fornecida encontra-se vazia. Operaï¿½ï¿½o de persistï¿½ncia abortada."
+                  "A matriz de saída fornecida encontra-se vazia. Operação de persistência abortada."
     End If
     
     numRows = UBound(outputMatrix, 1)
@@ -92,7 +92,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
                   "Nenhum registro para persistir na matriz de dados."
     End If
     
-    ' 2. Resoluï¿½ï¿½o do caminho da base de custos
+    ' 2. Resolução do caminho da base de custos
     If Len(Trim$(customFilePath)) > 0 Then
         targetPath = customFilePath
     Else
@@ -101,17 +101,17 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     
     If Len(Dir(targetPath)) = 0 Then
         Err.Raise vbObjectError + 4004, "mod_CostEngine_Persistence.PersistToDatabase", _
-                  "Arquivo de banco de dados de custos nï¿½o encontrado: " & targetPath
+                  "Arquivo de banco de dados de custos não encontrado: " & targetPath
     End If
     
-    ' 3. Teste de trava de arquivo (Concorrï¿½ncia / File Lock)
+    ' 3. Teste de trava de arquivo (Concorrência / File Lock)
     If CheckFileLock(targetPath) Then
         Err.Raise vbObjectError + 4001, "mod_CostEngine_Persistence.PersistToDatabase", _
-                  "O arquivo de destino 'Cerulean_DB_Custos.xlsx' encontra-se bloqueado por outro processo ou usuï¿½rio na rede." & vbCrLf & _
-                  "Por favor, feche o arquivo e repita a operaï¿½ï¿½o."
+                  "O arquivo de destino 'Cerulean_DB_Custos.xlsx' encontra-se bloqueado por outro processo ou usuário na rede." & vbCrLf & _
+                  "Por favor, feche o arquivo e repita a operação."
     End If
     
-    ' 4. Determinaï¿½ï¿½o dos identificadores dinï¿½micos (Aba e Tabela)
+    ' 4. Determinação dos identificadores dinâmicos (Aba e Tabela)
     If windowDays <= 0 Then
         modeLabel = "ULT"
     Else
@@ -130,7 +130,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
                                            ReadOnly:=False, _
                                            AddToMru:=False)
                                            
-    ' 6. Resoluï¿½ï¿½o de colisï¿½o de nomes de abas
+    ' 6. Resolução de colisão de nomes de abas
     targetSheetName = baseSheetName
     suffixIdx = 2
     Do While WorksheetExists(wbDest, targetSheetName)
@@ -138,11 +138,11 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
         suffixIdx = suffixIdx + 1
     Loop
     
-    ' Cria a nova Worksheet na ï¿½ltima posiï¿½ï¿½o
+    ' Cria a nova Worksheet na última posição
     Set wsNew = wbDest.Worksheets.Add(After:=wbDest.Worksheets(wbDest.Worksheets.Count))
     wsNew.Name = targetSheetName
     
-    ' 7. Preparaï¿½ï¿½o e despejo dos cabeï¿½alhos contratados em A1:G1
+    ' 7. Preparação e despejo dos cabeçalhos contratados em A1:G1
     arrHeaders(1, 1) = "Cod_Produto"
     arrHeaders(1, 2) = "Descricao_Produto"
     arrHeaders(1, 3) = "Custo_Medio_SKU"
@@ -154,11 +154,11 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     Set rngHeaders = wsNew.Range("A1:G1")
     rngHeaders.Value2 = arrHeaders
     
-    ' 8. Despejo em bloco ï¿½nico da matriz de dados a partir de A2
+    ' 8. Despejo em bloco único da matriz de dados a partir de A2
     Set rngData = wsNew.Range("A2").Resize(numRows, 7)
     rngData.Value2 = outputMatrix
     
-    ' 9. Conversï¿½o para ListObject estruturado
+    ' 9. Conversão para ListObject estruturado
     Set rngTableTotal = wsNew.Range("A1").Resize(numRows + 1, 7)
     
     targetTableName = baseTableName
@@ -175,7 +175,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     loCustos.TableStyle = "TableStyleMedium2"
     loCustos.ShowTableStyleRowStripes = False
     
-    ' 10. Aplicaï¿½ï¿½o de formatos numï¿½ricos estritos por coluna
+    ' 10. Aplicação de formatos numéricos estritos por coluna
     With loCustos
         .ListColumns(1).DataBodyRange.NumberFormat = "@"                  ' Cod_Produto
         .ListColumns(2).DataBodyRange.NumberFormat = "@"                  ' Descricao_Produto
@@ -185,7 +185,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
         .ListColumns(6).DataBodyRange.NumberFormat = "@"                  ' Janela_Dias_Base
         .ListColumns(7).DataBodyRange.NumberFormat = "yyyy-mm-dd hh:mm:ss" ' Data_Processamento
         
-        ' Alinhamentos estï¿½ticos
+        ' Alinhamentos estéticos
         .ListColumns(1).DataBodyRange.HorizontalAlignment = xlLeft
         .ListColumns(2).DataBodyRange.HorizontalAlignment = xlLeft
         .ListColumns(3).DataBodyRange.HorizontalAlignment = xlRight
@@ -198,7 +198,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     ' 11. Autoajuste de colunas
     wsNew.Columns("A:G").AutoFit
     
-    ' 12. Salvamento e fechamento explï¿½cito do arquivo
+    ' 12. Salvamento e fechamento explícito do arquivo
     wbDest.Close SaveChanges:=True
     Set wbDest = Nothing
     
@@ -216,11 +216,11 @@ PersistenceErrorHandler:
     End If
     
     Err.Raise pErrNum, "mod_CostEngine_Persistence.PersistToDatabase", _
-              "Falha crï¿½tica durante a persistï¿½ncia em Cerulean_DB_Custos.xlsx: " & pErrDesc
+              "Falha crítica durante a persistência em Cerulean_DB_Custos.xlsx: " & pErrDesc
 End Sub
 
 ' ==============================================================================
-' Funï¿½ï¿½es Auxiliares Privadas
+' Funções Auxiliares Privadas
 ' ==============================================================================
 Private Function WorksheetExists(ByVal wb As Workbook, ByVal sheetName As String) As Boolean
     Dim ws As Worksheet
@@ -250,7 +250,7 @@ Private Function ResolveDatabasePath(ByVal fileName As String, ByVal absoluteFal
     On Error Resume Next
     If Not ThisWorkbook Is Nothing Then
         If Len(ThisWorkbook.Path) > 0 Then
-            ' Relativo ï¿½ pasta do projeto
+            ' Relativo à pasta do projeto
             candidate = ThisWorkbook.Path & Application.PathSeparator & "src" & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
             If Len(Dir(candidate)) > 0 Then
                 ResolveDatabasePath = candidate
@@ -283,7 +283,6 @@ Public Sub Test_CostEngine_Persistence_SafeZone()
         isLocked = CheckFileLock(testPath)
         Debug.Print "[PASS] Test_CostEngine_Persistence_SafeZone: CheckFileLock executado com sucesso. Status bloqueado: " & isLocked
     Else
-        Debug.Print "[WARN] Test_CostEngine_Persistence_SafeZone: Arquivo de banco de dados nï¿½o encontrado para teste de trava."
+        Debug.Print "[WARN] Test_CostEngine_Persistence_SafeZone: Arquivo de banco de dados não encontrado para teste de trava."
     End If
 End Sub
-
