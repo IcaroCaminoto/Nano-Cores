@@ -60,7 +60,7 @@ End Sub
 ' ==============================================================================
 Public Sub RunAllCostEngineContractTests()
     ResetTestCounters
-    Debug.Print "--- INICIANDO PROTOCOLO DE AUDITORIA CODE-SPEC-VALIDATOR (SPEC-003) ---"
+    Debug.Print "--- AUDITORIA DE CONTRATOS (SPEC-003) ---"
     
     Test_01_MovingAverage_90DayBoundaryCalculation
     Test_02_Snapshot_LatestUpdateIsolation
@@ -77,12 +77,13 @@ End Sub
 
 ' ------------------------------------------------------------------------------
 ' Teste 1: Limite da Janela Móvel de 90 dias (Date - 89, -90 e -91)
+'          + Simulação real do Orquestrador (dictCount passado como Nothing)
 ' ------------------------------------------------------------------------------
 Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     Dim mockERP(1 To 3, 1 To 3) As Variant
     Dim today As Date: today = Date
     Dim dictAvg As Object
-    Dim dictCount As Object
+    Dim dictCount As Object ' Passado como Nothing para testar instanciação ByRef!
     
     ' Record 1: 89 dias atrás (DEVE ser incluído)
     mockERP(1, 1) = "SKU-BOUND": mockERP(1, 2) = today - 89: mockERP(1, 3) = 100#
@@ -91,8 +92,6 @@ Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     ' Record 3: 91 dias atrás (DEVE ser excluído)
     mockERP(3, 1) = "SKU-BOUND": mockERP(3, 2) = today - 91: mockERP(3, 3) = 999#
     
-    Set dictCount = CreateObject("Scripting.Dictionary")
-    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
     ' Validação de retorno de instâncias
@@ -107,7 +106,7 @@ Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     End If
     
     If dictCount Is Nothing Then
-        AssertEqual "Nothing", "Object", "Corte 90D: dictCount deve ser instanciado e retornado (Not Nothing)"
+        AssertEqual "Nothing", "Object", "Corte 90D: dictCount deve ser instanciado internamente por ComputeSKUMovingAverages"
     ElseIf Not dictCount.Exists("SKU-BOUND") Then
         AssertEqual False, True, "Corte 90D: Chave 'SKU-BOUND' deve existir em dictCount"
     Else
@@ -118,20 +117,19 @@ End Sub
 
 ' ------------------------------------------------------------------------------
 ' Teste 2: Snapshot de Última Atualização (Maior Data por SKU)
+'          + Simulação real do Orquestrador (dictCount passado como Nothing)
 ' ------------------------------------------------------------------------------
 Private Sub Test_02_Snapshot_LatestUpdateIsolation()
     Dim mockERP(1 To 3, 1 To 3) As Variant
     Dim today As Date: today = Date
     Dim dictAvg As Object
-    Dim dictCount As Object
+    Dim dictCount As Object ' Passado como Nothing para testar instanciação ByRef!
     
     ' Lançamentos em datas distintas para o mesmo SKU
     mockERP(1, 1) = "SKU-SNAP": mockERP(1, 2) = today - 30: mockERP(1, 3) = 50#
     mockERP(2, 1) = "SKU-SNAP": mockERP(2, 2) = today - 5:  mockERP(2, 3) = 175.5
     mockERP(3, 1) = "SKU-SNAP": mockERP(3, 2) = today - 10: mockERP(3, 3) = 120#
     
-    Set dictCount = CreateObject("Scripting.Dictionary")
-    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKULatestUpdate(mockERP, 1, 2, 3, dictCount)
     
     If dictAvg Is Nothing Then
@@ -144,7 +142,7 @@ Private Sub Test_02_Snapshot_LatestUpdateIsolation()
     End If
     
     If dictCount Is Nothing Then
-        AssertEqual "Nothing", "Object", "Snapshot: dictCount deve ser instanciado e retornado (Not Nothing)"
+        AssertEqual "Nothing", "Object", "Snapshot: dictCount deve ser instanciado internamente por ComputeSKULatestUpdate"
     ElseIf Not dictCount.Exists("SKU-SNAP") Then
         AssertEqual False, True, "Snapshot: Chave 'SKU-SNAP' deve existir em dictCount"
     Else
@@ -159,14 +157,12 @@ End Sub
 Private Sub Test_03_IndeterminationAndZeroDivisionDefense()
     Dim mockERP(1 To 1, 1 To 3) As Variant
     Dim dictAvg As Object
-    Dim dictCount As Object
+    Dim dictCount As Object ' Passado como Nothing
     Dim txCountVal As Long
     
     ' Registro fora da janela (120 dias atrás)
     mockERP(1, 1) = "SKU-ANTIGO": mockERP(1, 2) = Date - 120: mockERP(1, 3) = 500#
     
-    Set dictCount = CreateObject("Scripting.Dictionary")
-    dictCount.CompareMode = vbTextCompare
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     
     ' SKU-ANTIGO não teve nenhum registro na janela de 90 dias
@@ -265,13 +261,14 @@ End Sub
 
 ' ------------------------------------------------------------------------------
 ' Teste 6: Left Join Semântico & Preservação Integral do Catálogo Mestre
+'          (CORRIGIDO: Inclui mockTxCount como 6º argumento obrigatório)
 ' ------------------------------------------------------------------------------
 Private Sub Test_06_ProductMasterLeftJoinPreservation()
     Dim mockMaster As Object
     Dim mockFamilyMap As Object
-    Dim mockClusters As Object
     Dim mockSKUAvg As Object
     Dim mockFamilyAvg As Object
+    Dim mockTxCount As Object
     Dim outMatrix As Variant
     
     Set mockMaster = CreateObject("Scripting.Dictionary")
@@ -290,25 +287,35 @@ Private Sub Test_06_ProductMasterLeftJoinPreservation()
     mockFamilyAvg("SKU-ATIVO-COM-MOV") = 250#
     mockFamilyAvg("SKU-ATIVO-SEM-MOV") = 0#
     
-    outMatrix = BuildFinalOutputMatrix(mockMaster, mockSKUAvg, mockFamilyAvg, mockFamilyMap, 90)
+    Set mockTxCount = CreateObject("Scripting.Dictionary")
+    mockTxCount("SKU-ATIVO-COM-MOV") = 3&
+    ' SKU-ATIVO-SEM-MOV não consta em mockTxCount (deve assumir fallback 0&)
     
-    ' Critério 6: Todos os 2 produtos do mestre devem constar na saída
+    outMatrix = BuildFinalOutputMatrix(mockMaster, mockSKUAvg, mockFamilyAvg, mockFamilyMap, 90, mockTxCount)
+    
+    ' Critério 6 e 7: Todos os 2 produtos do mestre devem constar na saída com custos e contagens corretos
     AssertEqual UBound(outMatrix, 1), 2&, _
                 "Critério 6: Dimensão da matriz deve ser estritamente igual à quantidade do Cadastro Mestre"
     AssertEqual CStr(outMatrix(2, 1)), "SKU-ATIVO-SEM-MOV", _
                 "Critério 6: Produto sem movimentação está preservado na matriz de saída"
     AssertEqual CDbl(outMatrix(2, 3)), 0#, _
                 "Critério 7: Produto sem histórico é renderizado como 0.00 na matriz final"
+    AssertEqual CLng(outMatrix(1, 5)), 3&, _
+                "Critério 1/6: Produto com histórico preserva Qtd_Transacoes_SKU = 3 na Coluna 5"
+    AssertEqual CLng(outMatrix(2, 5)), 0&, _
+                "Critério 7: Produto sem histórico recebe fallback Qtd_Transacoes_SKU = 0 na Coluna 5"
 End Sub
 
 ' ------------------------------------------------------------------------------
 ' Teste 7: Fidelidade de Schema da Matriz Final de Saída (Output Contract 01)
+'          (CORRIGIDO: Inclui mockTxCount como 6º argumento obrigatório)
 ' ------------------------------------------------------------------------------
 Private Sub Test_07_FinalOutputMatrixSchemaFidelity()
     Dim mockMaster As Object
     Dim mockFamilyMap As Object
     Dim mockSKUAvg As Object
     Dim mockFamilyAvg As Object
+    Dim mockTxCount As Object
     Dim outMatrix As Variant
     
     Set mockMaster = CreateObject("Scripting.Dictionary")
@@ -323,11 +330,20 @@ Private Sub Test_07_FinalOutputMatrixSchemaFidelity()
     Set mockFamilyAvg = CreateObject("Scripting.Dictionary")
     mockFamilyAvg("40001") = 45.2
     
-    outMatrix = BuildFinalOutputMatrix(mockMaster, mockSKUAvg, mockFamilyAvg, mockFamilyMap, 90)
+    Set mockTxCount = CreateObject("Scripting.Dictionary")
+    mockTxCount("40001") = 5&
     
-    ' Verifica se a matriz possui 7 colunas contratadas
+    outMatrix = BuildFinalOutputMatrix(mockMaster, mockSKUAvg, mockFamilyAvg, mockFamilyMap, 90, mockTxCount)
+    
+    ' Verifica se a matriz possui as 7 colunas contratadas e integridade de posição
     AssertEqual UBound(outMatrix, 2), 7&, _
                 "Output Contract 01: Matriz de saída possui exatamente 7 colunas contratadas"
+    AssertDoubleApprox CDbl(outMatrix(1, 3)), 45.2, 0.001, _
+                       "Output Contract 01: Coluna 3 contém Custo_Medio_SKU (45.20)"
+    AssertDoubleApprox CDbl(outMatrix(1, 4)), 45.2, 0.001, _
+                       "Output Contract 01: Coluna 4 contém Custo_Medio_Familia (45.20)"
+    AssertEqual CLng(outMatrix(1, 5)), 5&, _
+                "Output Contract 01: Coluna 5 contém Qtd_Transacoes_SKU (5)"
     AssertEqual CStr(outMatrix(1, 6)), "90D", _
                 "Output Contract 01: Coluna 6 identificada com a janela '90D'"
 End Sub
@@ -396,4 +412,3 @@ Private Sub Test_09_CheckFileLockMechanism()
     AssertEqual isLocked, False, _
                 "CheckFileLock: Detecta que o arquivo liberado não está bloqueado"
 End Sub
-

@@ -231,72 +231,86 @@ End Function
 ' Retorno: Scripting.Dictionary Cod_Pai -> Custo_Medio_Familia.
 ' ==============================================================================
 Public Function ComputeFamilyAverages(ByRef dictClusters As Object, _
-                                      ByRef dictSKUAvg As Object, _
-                                      ByRef dictProductMaster As Object, _
-                                      ByRef dictFamilyMap As Object) As Object
-    Dim dictFamilyAvg As Object
-    Dim skuItem As Variant
+                                     ByRef dictSKUAvg As Object, _
+                                     ByRef dictProductMaster As Object, _
+                                     ByRef dictFamilyMap As Object) As Object
+    On Error GoTo FamErrorHandler
+
+    Dim dictFamAvg As Object
+    Set dictFamAvg = CreateObject("Scripting.Dictionary")
+    dictFamAvg.CompareMode = vbTextCompare
+
+    If dictFamilyMap Is Nothing Then
+        Set dictFamilyMap = CreateObject("Scripting.Dictionary")
+        dictFamilyMap.CompareMode = vbTextCompare
+    End If
+
+    If dictClusters Is Nothing Then
+        Set dictClusters = CreateObject("Scripting.Dictionary")
+        dictClusters.CompareMode = vbTextCompare
+    End If
+
+    ' Etapa 1: Resolução de Órfãos (Cadastro Mestre vs. Cluster)
+    Dim skuKey As Variant
     Dim skuCode As String
+    Dim orphanCluster As Object
+
+    If Not dictProductMaster Is Nothing Then
+        For Each skuKey In dictProductMaster.Keys
+            skuCode = Trim$(CStr(skuKey))
+            If Not dictFamilyMap.Exists(skuCode) Then
+                dictFamilyMap.Add skuCode, skuCode
+                If Not dictClusters.Exists(skuCode) Then
+                    Set orphanCluster = CreateObject("Scripting.Dictionary")
+                    orphanCluster.CompareMode = vbTextCompare
+                    orphanCluster.Add skuCode, True
+                    dictClusters.Add skuCode, orphanCluster
+                End If
+            End If
+        Next skuKey
+    End If
+
+    ' Etapa 2: Consolidação da Média do Cluster (Pai + Filhos)
     Dim parentKey As Variant
-    Dim memberItem As Variant
-    Dim memberCode As String
-    Dim clusterSubDict As Object
+    Dim memberKey As Variant
+    Dim clusterMembers As Object
     Dim clusterSum As Double
     Dim clusterCount As Long
     Dim memberCost As Double
-    
-    Set dictFamilyAvg = CreateObject("Scripting.Dictionary")
-    dictFamilyAvg.CompareMode = vbTextCompare
-    
-    ' --------------------------------------------------------------------------
-    ' Etapa 1: Resolução de Órfãos (Cadastro Mestre vs. Cluster)
-    ' Critério 9: Se o produto não possui vínculo, Cod_Familia = Cod_Produto
-    ' --------------------------------------------------------------------------
-    If Not dictProductMaster Is Nothing Then
-        For Each skuItem In dictProductMaster.Keys
-            skuCode = CStr(skuItem)
-            
-            If Not dictFamilyMap.Exists(skuCode) Then
-                dictFamilyMap(skuCode) = skuCode
-                
-                If Not dictClusters.Exists(skuCode) Then
-                    Set clusterSubDict = CreateObject("Scripting.Dictionary")
-                    clusterSubDict.CompareMode = vbTextCompare
-                    clusterSubDict(skuCode) = True
-                    Set dictClusters(skuCode) = clusterSubDict
-                End If
-            End If
-        Next skuItem
-    End If
-    
-    ' --------------------------------------------------------------------------
-    ' Etapa 2: Consolidação da Média do Cluster (Pai + Filhos)
-    ' --------------------------------------------------------------------------
+
     For Each parentKey In dictClusters.Keys
         clusterSum = 0#
         clusterCount = 0&
-        Set clusterSubDict = dictClusters(parentKey)
-        
-        For Each memberItem In clusterSubDict.Keys
-            memberCode = CStr(memberItem)
-            
-            If dictSKUAvg.Exists(memberCode) Then
-                memberCost = CDbl(dictSKUAvg(memberCode))
-                If memberCost > 0# Then
-                    clusterSum = clusterSum + memberCost
-                    clusterCount = clusterCount + 1&
+        Set clusterMembers = dictClusters(parentKey)
+
+        For Each memberKey In clusterMembers.Keys
+            skuCode = Trim$(CStr(memberKey))
+            If Not dictSKUAvg Is Nothing Then
+                If dictSKUAvg.Exists(skuCode) Then
+                    memberCost = CDbl(dictSKUAvg(skuCode))
+                    If memberCost > 0# Then
+                        clusterSum = clusterSum + memberCost
+                        clusterCount = clusterCount + 1&
+                    End If
                 End If
             End If
-        Next memberItem
-        
-        If clusterCount > 0& Then
-            dictFamilyAvg(parentKey) = Round(clusterSum / CDbl(clusterCount), 2)
+        Next memberKey
+
+        If clusterCount > 0 Then
+            dictFamAvg(Trim$(CStr(parentKey))) = Round(clusterSum / clusterCount, 2)
         Else
-            dictFamilyAvg(parentKey) = 0#
+            dictFamAvg(Trim$(CStr(parentKey))) = 0#
         End If
     Next parentKey
-    
-    Set ComputeFamilyAverages = dictFamilyAvg
+
+    Set ComputeFamilyAverages = dictFamAvg
+    Exit Function
+
+FamErrorHandler:
+    Dim errDesc As String: errDesc = Err.Description
+    Dim errNum As Long: errNum = Err.Number
+    Err.Raise errNum, "mod_CostEngine_Calculator.ComputeFamilyAverages", _
+              "Falha na consolidação das médias de família: " & errDesc
 End Function
 
 ' ==============================================================================
@@ -321,25 +335,17 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
                                       ByRef dictTxCount As Object) As Variant
     On Error GoTo BuildMatrixErrorHandler
 
-    ' 1. Validação defensiva do condutor principal (Spine)
-    If dictMaster Is Nothing Then
-        Err.Raise vbObjectError + 5101, "mod_CostEngine_Calculator.BuildFinalOutputMatrix", _
-                  "O catálogo mestre (dictMaster) não foi inicializado."
+    If dictMaster Is Nothing Or dictMaster.Count = 0 Then
+        BuildFinalOutputMatrix = Empty
+        Exit Function
     End If
 
     Dim totalRows As Long
     totalRows = dictMaster.Count
 
-    If totalRows = 0 Then
-        BuildFinalOutputMatrix = Empty
-        Exit Function
-    End If
-
-    ' 2. Dimensionamento da matriz em memória: (1 To N, 1 To 7 Colunas Contratuais)
     Dim outArray() As Variant
     ReDim outArray(1 To totalRows, 1 To 7)
 
-    ' 3. Resolução da etiqueta da janela temporal (Janela_Dias_Base)
     Dim windowLabel As String
     If windowDays <= 0 Then
         windowLabel = "ULT"
@@ -350,7 +356,6 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
     Dim procTimestamp As Date
     procTimestamp = Now
 
-    ' 4. Variáveis de iteração e leitura
     Dim i As Long: i = 1
     Dim skuKey As Variant
     Dim skuCode As String
@@ -360,23 +365,23 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
     Dim famCost As Double
     Dim txCount As Long
 
-    ' 5. Loop diretor estritamente orientado pelas chaves do Cadastro Mestre
+    ' Loop diretor estritamente orientado por dictMaster (Left Join Semântico)
     For Each skuKey In dictMaster.Keys
         skuCode = Trim$(CStr(skuKey))
         skuDesc = Trim$(CStr(dictMaster(skuKey)))
 
-        ' --- A. Resolução taxonômica da família (Pai / Órfão) ---
+        ' 1. Resolve código do Pai representante
         If Not dictFamilyMap Is Nothing Then
             If dictFamilyMap.Exists(skuCode) Then
                 parentCode = Trim$(CStr(dictFamilyMap(skuCode)))
             Else
-                parentCode = skuCode ' Órfão é pai de si mesmo
+                parentCode = skuCode
             End If
         Else
             parentCode = skuCode
         End If
 
-        ' --- B. Resolução defensiva do custo individual do SKU ---
+        ' 2. Resolve Custo Médio Individual (Col 3)
         skuCost = 0#
         If Not dictSKUAvg Is Nothing Then
             If dictSKUAvg.Exists(skuCode) Then
@@ -384,17 +389,17 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
             End If
         End If
 
-        ' --- C. Resolução defensiva do custo da família ---
+        ' 3. Resolve Custo Médio da Família (Col 4)
         famCost = 0#
         If Not dictFamilyAvg Is Nothing Then
             If dictFamilyAvg.Exists(parentCode) Then
                 famCost = CDbl(dictFamilyAvg(parentCode))
             Else
-                famCost = skuCost ' Fallback para órfão sem cálculo de cluster
+                famCost = skuCost
             End If
         End If
 
-        ' --- D. Resolução defensiva da contagem de transações (dictTxCount) ---
+        ' 4. Resolve Quantidade de Transações do SKU (Col 5)
         txCount = 0&
         If Not dictTxCount Is Nothing Then
             If dictTxCount.Exists(skuCode) Then
@@ -402,7 +407,7 @@ Public Function BuildFinalOutputMatrix(ByRef dictMaster As Object, _
             End If
         End If
 
-        ' --- E. Povoamento das 7 colunas contratuais (SPEC-003) ---
+        ' 5. Gravação nas 7 colunas contratuais (Output Contract 01)
         outArray(i, 1) = skuCode                                         ' Col 1: Cod_Produto
         outArray(i, 2) = IIf(Len(skuDesc) > 0, skuDesc, "Sem Descrição") ' Col 2: Descricao_Produto
         outArray(i, 3) = skuCost                                         ' Col 3: Custo_Medio_SKU
