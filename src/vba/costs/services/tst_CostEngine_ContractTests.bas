@@ -85,12 +85,12 @@ Private Sub Test_01_MovingAverage_90DayBoundaryCalculation()
     Dim dictAvg As Object
     Dim dictCount As Object ' Passado como Nothing para testar instanciação ByRef!
     
-    ' Record 1: 89 dias atrás (DEVE ser incluído)
-    mockERP(1, 1) = "SKU-BOUND": mockERP(1, 2) = today - 89: mockERP(1, 3) = 100#
-    ' Record 2: Exatamente 90 dias atrás (DEVE ser incluído)
-    mockERP(2, 1) = "SKU-BOUND": mockERP(2, 2) = today - 90: mockERP(2, 3) = 200#
+    ' Record 1: Passado como Double (CDbl) para simular exatamente o retorno de .Value2 do Excel!
+    mockERP(1, 1) = 40001#:      mockERP(1, 2) = CDbl(today - 89): mockERP(1, 3) = 100#
+    ' Record 2: Exatamente 90 dias atrás como Date
+    mockERP(2, 1) = "40001":     mockERP(2, 2) = today - 90:       mockERP(2, 3) = 200#
     ' Record 3: 91 dias atrás (DEVE ser excluído)
-    mockERP(3, 1) = "SKU-BOUND": mockERP(3, 2) = today - 91: mockERP(3, 3) = 999#
+    mockERP(3, 1) = "40001":     mockERP(3, 2) = CDbl(today - 91): mockERP(3, 3) = 999#
     
     Set dictAvg = ComputeSKUMovingAverages(mockERP, 90, 1, 2, 3, dictCount)
     

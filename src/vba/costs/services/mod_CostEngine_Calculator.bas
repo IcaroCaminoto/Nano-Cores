@@ -42,7 +42,6 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     Set dictSums = CreateObject("Scripting.Dictionary")
     Set dictAvg = CreateObject("Scripting.Dictionary")
     
-    ' 1. Instanciação e vinculação do objeto de saída ByRef
     Set outTxCount = CreateObject("Scripting.Dictionary")
     dictSums.CompareMode = vbTextCompare
     dictAvg.CompareMode = vbTextCompare
@@ -66,37 +65,36 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
     Dim rawDate As Date
     Dim valCell As Variant
 
-    ' 2. Varredura do extrato com normalização estrita de tipos
     For r = rStart To rEnd
         valCell = arrERPRaw(r, idxCod)
         If Not IsError(valCell) And Not IsEmpty(valCell) Then
             rawSKU = Trim$(CStr(valCell))
             
             If Len(rawSKU) > 0 Then
-                valCell = arrERPRaw(r, idxDate)
-                
-                If IsDate(valCell) Then
-                    rawDate = CDate(valCell)
+                ' Lê a célula de data convertendo inclusive seriais Double vindos de .Value2
+                If TryParseERPDate(arrERPRaw(r, idxDate), rawDate) Then
                     
-                    ' Filtro da janela móvel
+                    ' Filtro da janela móvel (ex: >= 22/07/2026)
                     If rawDate >= cutoffDate Then
                         valCell = arrERPRaw(r, idxCost)
                         
-                        If IsNumeric(valCell) Then
-                            rawCost = CDbl(valCell)
-                            
-                            ' Acúmulo de soma
-                            If dictSums.Exists(rawSKU) Then
-                                dictSums(rawSKU) = dictSums(rawSKU) + rawCost
-                            Else
-                                dictSums.Add rawSKU, rawCost
-                            End If
-                            
-                            ' Acúmulo estrutural de contagem
-                            If outTxCount.Exists(rawSKU) Then
-                                outTxCount(rawSKU) = CLng(outTxCount(rawSKU)) + 1
-                            Else
-                                outTxCount.Add rawSKU, 1&
+                        If Not IsError(valCell) And Not IsEmpty(valCell) Then
+                            If IsNumeric(valCell) Then
+                                rawCost = CDbl(valCell)
+                                
+                                ' Acúmulo de soma
+                                If dictSums.Exists(rawSKU) Then
+                                    dictSums(rawSKU) = CDbl(dictSums(rawSKU)) + rawCost
+                                Else
+                                    dictSums.Add rawSKU, rawCost
+                                End If
+                                
+                                ' Acúmulo de contagem
+                                If outTxCount.Exists(rawSKU) Then
+                                    outTxCount(rawSKU) = CLng(outTxCount(rawSKU)) + 1&
+                                Else
+                                    outTxCount.Add rawSKU, 1&
+                                End If
                             End If
                         End If
                     End If
@@ -105,14 +103,14 @@ Public Function ComputeSKUMovingAverages(ByRef arrERPRaw As Variant, _
         End If
     Next r
 
-    ' 3. Consolidação das médias (Soma / Contagem)
+    ' Consolidação das médias (Soma / Contagem)
     Dim skuKey As Variant
     Dim txTotal As Long
     Dim sumTotal As Double
 
     For Each skuKey In dictSums.Keys
-        txTotal = outTxCount(skuKey)
-        sumTotal = dictSums(skuKey)
+        txTotal = CLng(outTxCount(skuKey))
+        sumTotal = CDbl(dictSums(skuKey))
         
         If txTotal > 0 Then
             dictAvg(skuKey) = Round(sumTotal / txTotal, 2)
@@ -182,23 +180,23 @@ Public Function ComputeSKULatestUpdate(ByRef arrERPRaw As Variant, _
             rawSKU = Trim$(CStr(valCell))
             
             If Len(rawSKU) > 0 Then
-                valCell = arrERPRaw(r, idxDate)
-                
-                If IsDate(valCell) Then
-                    rawDate = CDate(valCell)
+                ' Lê a célula de data convertendo inclusive seriais Double vindos de .Value2
+                If TryParseERPDate(arrERPRaw(r, idxDate), rawDate) Then
                     valCell = arrERPRaw(r, idxCost)
                     
-                    If IsNumeric(valCell) Then
-                        rawCost = CDbl(valCell)
-                        
-                        If Not dictLatestDate.Exists(rawSKU) Then
-                            dictLatestDate.Add rawSKU, rawDate
-                            dictAvg.Add rawSKU, Round(rawCost, 2)
-                            outTxCount.Add rawSKU, 1&
-                        ElseIf rawDate > dictLatestDate(rawSKU) Then
-                            dictLatestDate(rawSKU) = rawDate
-                            dictAvg(rawSKU) = Round(rawCost, 2)
-                            outTxCount(rawSKU) = 1&
+                    If Not IsError(valCell) And Not IsEmpty(valCell) Then
+                        If IsNumeric(valCell) Then
+                            rawCost = CDbl(valCell)
+                            
+                            If Not dictLatestDate.Exists(rawSKU) Then
+                                dictLatestDate.Add rawSKU, rawDate
+                                dictAvg.Add rawSKU, Round(rawCost, 2)
+                                outTxCount.Add rawSKU, 1&
+                            ElseIf rawDate > CDate(dictLatestDate(rawSKU)) Then
+                                dictLatestDate(rawSKU) = rawDate
+                                dictAvg(rawSKU) = Round(rawCost, 2)
+                                outTxCount(rawSKU) = 1&
+                            End If
                         End If
                     End If
                 End If
@@ -570,6 +568,42 @@ Private Sub Test_CostEngine_Calculator_SafeZone()
     
     Debug.Print "[PASS] Test_CostEngine_Calculator_SafeZone concluído com 100% de sucesso nas asserções."
 End Sub
+
+' ==============================================================================
+' Função Privada Auxiliar: TryParseERPDate
+' Finalidade: Converte valores de data vindos de .Value2 (Double serial Excel),
+'             Strings ("30/09/2026") ou Date nativo sem falhar no IsDate().
+' ==============================================================================
+Private Function TryParseERPDate(ByVal valCell As Variant, ByRef outDate As Date) As Boolean
+    On Error GoTo ParseFail
+    
+    If IsError(valCell) Or IsEmpty(valCell) Then
+        TryParseERPDate = False
+        Exit Function
+    End If
+    
+    ' Caso 1: Já é Date nativo ou String de data reconhecida pelo VBA
+    If IsDate(valCell) Then
+        outDate = CDate(valCell)
+        TryParseERPDate = True
+        Exit Function
+    End If
+    
+    ' Caso 2: É um número serial Double retornado por .Value2 (ex: 46295 para 30/09/2026)
+    If IsNumeric(valCell) Then
+        Dim serialVal As Double
+        serialVal = CDbl(valCell)
+        ' Intervalo válido de datas no Excel (entre 01/01/1980 e 31/12/2199)
+        If serialVal >= 29221# And serialVal <= 109574# Then
+            outDate = CDate(serialVal)
+            TryParseERPDate = True
+            Exit Function
+        End If
+    End If
+
+ParseFail:
+    TryParseERPDate = False
+End Function
 
 Private Sub Run_GuardRails_Verification()
     Debug.Print "=== INICIANDO AUDITORIA DE CONTRATOS E CONTAGEM ==="
