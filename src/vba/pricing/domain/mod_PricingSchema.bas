@@ -43,10 +43,6 @@ Public Const ALIQ_PIS_COFINS_PADRAO As Double = 0.0925
 ' (deve existir na tabela CfOperações; senão os impostos ficam vazios)
 Public Const OPERACAO_PADRAO_LOTE As String = "_OP_INTG"
 
-Public Function Tabela_Operacoes() As String
-    Tabela_Operacoes = "CfOpera" & ChrW(231) & ChrW(245) & "es"           ' CfOperações
-End Function
-
 ' ------------------------------------------------------------------------------
 ' Bases externas ("bases burras" .xlsx no servidor, lidas via ADO/SQL)
 '   Cerulean_DB_Produtos.xlsx  -> aba Cadastro_Produtos
@@ -71,6 +67,10 @@ Public Const DBIMP_CALC_ST As String = "calc_st"
 Public Const DBIMP_UF As String = "uf_destino"
 Public Const DBIMP_ICMS As String = "aliquota_icms"
 Public Const DBIMP_ST As String = "aliquota_st"
+
+Public Function Tabela_Operacoes() As String
+    Tabela_Operacoes = "CfOpera" & ChrW(231) & ChrW(245) & "es"           ' CfOperações
+End Function
 
 ' Campos da aba Cadastro_Produtos
 Public Function DbProd_Codigo() As String
