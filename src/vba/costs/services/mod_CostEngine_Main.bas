@@ -169,9 +169,9 @@ End Sub
 Private Sub ValidatePreconditions(ByRef outProductsPath As String, _
                                  ByRef outAssocPath As String, _
                                  ByRef outCostsPath As String)
-    outProductsPath = ResolvePath("Cerulean_DB_Produtos.xlsx", DB_PRODUCTS_FILE)
-    outAssocPath = ResolvePath("Cerulean_DB_Parametros_Associacao_Produtos.xlsx", DB_PARAM_ASSOC_FILE)
-    outCostsPath = ResolvePath("Cerulean_DB_Custos.xlsx", DB_COSTS_FILE)
+    outProductsPath = Config_ResolveDatabaseFile(DB_FILE_PRODUTOS)
+    outAssocPath = Config_ResolveDatabaseFile(DB_FILE_PARAM_ASSOC)
+    outCostsPath = Config_ResolveDatabaseFile(DB_FILE_CUSTOS)
     
     If Len(Dir(outProductsPath)) = 0 Then
         Err.Raise vbObjectError + 5002, "mod_CostEngine_Main.ValidatePreconditions", _
@@ -246,29 +246,4 @@ Private Sub NormalizeWindowParam(ByVal windowMode As Variant, _
         outDesc = "Média Móvel de 90 Dias (Padrão)"
     End If
 End Sub
-
-' ==============================================================================
-' Função Privada: ResolvePath
-' ==============================================================================
-Private Function ResolvePath(ByVal fileName As String, ByVal defaultPath As String) As String
-    Dim candidate As String
-    On Error Resume Next
-    If Not ThisWorkbook Is Nothing Then
-        If Len(ThisWorkbook.Path) > 0 Then
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "src" & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolvePath = candidate
-                Exit Function
-            End If
-            
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolvePath = candidate
-                Exit Function
-            End If
-        End If
-    End If
-    On Error GoTo 0
-    ResolvePath = defaultPath
-End Function
 

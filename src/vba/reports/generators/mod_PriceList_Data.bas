@@ -1,10 +1,10 @@
 Attribute VB_Name = "mod_PriceList_Data"
 ' ==============================================================================
-' MÃ³dulo: mod_PriceList_Data
-' Finalidade: ExtraÃ§Ã£o de dados (ETL), indexaÃ§Ã£o hash em memÃ³ria (Scripting.Dictionary),
-'             auto-provisionamento de tabelas de parÃ¢metros e motor taxonÃ´mico
-'             em 3 camadas (SeÃ§Ã£o -> AssociaÃ§Ã£o Exata -> Fallback HeurÃ­stico).
-' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatÃ­vel)
+' Módulo: mod_PriceList_Data
+' Finalidade: Extração de dados (ETL), indexação hash em memória (Scripting.Dictionary),
+'             auto-provisionamento de tabelas de parâmetros e motor taxonômico
+'             em 3 camadas (Seção -> Associação Exata -> Fallback Heurístico).
+' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatível)
 ' ==============================================================================
 Option Explicit
 
@@ -20,9 +20,9 @@ Public Const TABLE_PARAM_GRUPOS As String = "tb_Param_GruposPreco"
 
 ' ==============================================================================
 ' Procedimento: EnsureParameterSheetExists
-' Finalidade: Verifica a existÃªncia da planilha Param_GruposPreco e da tabela
-'             tb_Param_GruposPreco. Se ausentes, cria dinamicamente com cabeÃ§alhos
-'             e registro padrÃ£o, garantindo resiliÃªncia sem interrupÃ§Ã£o.
+' Finalidade: Verifica a existência da planilha Param_GruposPreco e da tabela
+'             tb_Param_GruposPreco. Se ausentes, cria dinamicamente com cabeçalhos
+'             e registro padrão, garantindo resiliência sem interrupção.
 ' ==============================================================================
 Public Sub EnsureParameterSheetExists(Optional ByVal wb As Workbook = Nothing)
     If wb Is Nothing Then Set wb = ThisWorkbook
@@ -46,7 +46,7 @@ Public Sub EnsureParameterSheetExists(Optional ByVal wb As Workbook = Nothing)
     On Error GoTo 0
     
     If loParam Is Nothing Then
-        ' Injeta cabeÃ§alhos padrÃ£o e 1 registro de inicializaÃ§Ã£o
+        ' Injeta cabeçalhos padrão e 1 registro de inicialização
         wsParam.Cells(1, 1).Value = "Cod_Grupo_Produtos"
         wsParam.Cells(1, 2).Value = "Nome_Grupo_Tabela"
         wsParam.Cells(2, 1).Value = "0"
@@ -62,10 +62,10 @@ Public Sub EnsureParameterSheetExists(Optional ByVal wb As Workbook = Nothing)
 End Sub
 
 ' ==============================================================================
-' FunÃ§Ã£o: LoadPriceIndex
-' Finalidade: Carrega a matriz de preÃ§os da tabela CfPcfic (planilha TabelaCustos)
-'             em um Scripting.Dictionary em memÃ³ria (Chave = CÃ³digo, Item = P.Base).
-'             Atua como filtro rigoroso de inclusÃ£o.
+' Função: LoadPriceIndex
+' Finalidade: Carrega a matriz de preços da tabela CfPcfic (planilha TabelaCustos)
+'             em um Scripting.Dictionary em memória (Chave = Código, Item = P.Base).
+'             Atua como filtro rigoroso de inclusão.
 ' ==============================================================================
 Public Function LoadPriceIndex(Optional ByVal wb As Workbook = Nothing) As Object
     If wb Is Nothing Then Set wb = ThisWorkbook
@@ -87,7 +87,7 @@ Public Function LoadPriceIndex(Optional ByVal wb As Workbook = Nothing) As Objec
     
     If wsCustos Is Nothing Then
         Err.Raise vbObjectError + 1001, "mod_PriceList_Data.LoadPriceIndex", _
-            "A planilha obrigatÃ³ria '" & SHEET_CUSTOS & "' nÃ£o foi encontrada na pasta de trabalho."
+            "A planilha obrigatória '" & SHEET_CUSTOS & "' não foi encontrada na pasta de trabalho."
     End If
     
     On Error Resume Next
@@ -96,29 +96,29 @@ Public Function LoadPriceIndex(Optional ByVal wb As Workbook = Nothing) As Objec
     
     If loPrecos Is Nothing Then
         Err.Raise vbObjectError + 1002, "mod_PriceList_Data.LoadPriceIndex", _
-            "A tabela de preÃ§os '" & TABLE_PRECOS & "' nÃ£o foi encontrada na planilha '" & SHEET_CUSTOS & "'."
+            "A tabela de preços '" & TABLE_PRECOS & "' não foi encontrada na planilha '" & SHEET_CUSTOS & "'."
     End If
     
     If loPrecos.DataBodyRange Is Nothing Then
         Err.Raise vbObjectError + 1003, "mod_PriceList_Data.LoadPriceIndex", _
-            "A tabela de preÃ§os '" & TABLE_PRECOS & "' nÃ£o contÃ©m registros de dados."
+            "A tabela de preços '" & TABLE_PRECOS & "' não contém registros de dados."
     End If
     
-    ' Identifica dinamicamente as colunas necessÃ¡rias
-    colCodIdx = FindColumnIndex(loPrecos, "CÃ³digo", "Codigo", "Codigo_Produto")
+    ' Identifica dinamicamente as colunas necessárias
+    colCodIdx = FindColumnIndex(loPrecos, "C" & ChrW(243) & "digo", "Codigo", "Codigo_Produto")
     colPrecoIdx = FindColumnIndex(loPrecos, "P.Base - Ex IPI/ST", "P. Base - Ex IPI/ST", "P.Base", "Preco Base")
     
     If colCodIdx = 0 Or colPrecoIdx = 0 Then
         Err.Raise vbObjectError + 1004, "mod_PriceList_Data.LoadPriceIndex", _
-            "Colunas obrigatÃ³rias ('CÃ³digo' ou 'P.Base - Ex IPI/ST') nÃ£o foram identificadas na tabela '" & TABLE_PRECOS & "'."
+            "Colunas obrigatórias ('Código' ou 'P.Base - Ex IPI/ST') não foram identificadas na tabela '" & TABLE_PRECOS & "'."
     End If
     
-    ' Leitura massiva em matriz de memÃ³ria (Zero cell looping)
+    ' Leitura massiva em matriz de memória (Zero cell looping)
     rawPrices = loPrecos.DataBodyRange.Value2
     totalRows = UBound(rawPrices, 1)
     
     Set dictPreco = CreateObject("Scripting.Dictionary")
-    dictPreco.CompareMode = 1 ' vbTextCompare para evitar inconsistÃªncia de caixa
+    dictPreco.CompareMode = 1 ' vbTextCompare para evitar inconsistência de caixa
     
     For i = 1 To totalRows
         skuKey = Trim(CStr(rawPrices(i, colCodIdx)))
@@ -128,7 +128,7 @@ Public Function LoadPriceIndex(Optional ByVal wb As Workbook = Nothing) As Objec
             Else
                 precoVal = 0#
             End If
-            ' Adiciona ou atualiza a chave com o preÃ§o base
+            ' Adiciona ou atualiza a chave com o preço base
             dictPreco(skuKey) = precoVal
         End If
     Next i
@@ -137,8 +137,8 @@ Public Function LoadPriceIndex(Optional ByVal wb As Workbook = Nothing) As Objec
 End Function
 
 ' ==============================================================================
-' FunÃ§Ã£o: LoadAssociationIndex
-' Finalidade: Carrega a tabela de parÃ¢metros tb_Param_GruposPreco em um
+' Função: LoadAssociationIndex
+' Finalidade: Carrega a tabela de parâmetros tb_Param_GruposPreco em um
 '             Scripting.Dictionary (Chave = Cod_Grupo_Produtos, Item = Nome_Grupo_Tabela).
 ' ==============================================================================
 Public Function LoadAssociationIndex(Optional ByVal wb As Workbook = Nothing) As Object
@@ -185,12 +185,12 @@ Public Function LoadAssociationIndex(Optional ByVal wb As Workbook = Nothing) As
 End Function
 
 ' ==============================================================================
-' FunÃ§Ã£o: ResolveGroupName
-' Finalidade: Executa o pipeline taxonÃ´mico das Camadas 2 e 3:
-'             - Layer 2: CorrespondÃªncia exata em tb_Param_GruposPreco via Cod_Grupo_Produtos.
-'             - Layer 3: CorrespondÃªncia heurÃ­stica por palavras-chave na descriÃ§Ã£o
+' Função: ResolveGroupName
+' Finalidade: Executa o pipeline taxonômico das Camadas 2 e 3:
+'             - Layer 2: Correspondência exata em tb_Param_GruposPreco via Cod_Grupo_Produtos.
+'             - Layer 3: Correspondência heurística por palavras-chave na descrição
 '                        ('CERA' -> 'CERAS', 'FREEZER' -> 'FREEZERS',
-'                         'COPO' -> 'COPOS E DESCARTÃVEIS', default -> Desc_Grupo_Produtos).
+'                         'COPO' -> 'COPOS E DESCARTÁVEIS', default -> Desc_Grupo_Produtos).
 ' ==============================================================================
 Public Function ResolveGroupName(ByVal codGrupo As Variant, ByVal descGrupo As String, ByRef dictAssoc As Object) As String
     Dim cleanCod As String
@@ -200,7 +200,7 @@ Public Function ResolveGroupName(ByVal codGrupo As Variant, ByVal descGrupo As S
     cleanDesc = UCase(Trim(descGrupo))
     
     ' --------------------------------------------------------------------------
-    ' Layer 2: AssociaÃ§Ã£o Exata por CÃ³digo de Grupo (PK)
+    ' Layer 2: Associação Exata por Código de Grupo (PK)
     ' --------------------------------------------------------------------------
     If Len(cleanCod) > 0 And Not dictAssoc Is Nothing Then
         If dictAssoc.Exists(cleanCod) Then
@@ -214,14 +214,14 @@ Public Function ResolveGroupName(ByVal codGrupo As Variant, ByVal descGrupo As S
     End If
     
     ' --------------------------------------------------------------------------
-    ' Layer 3: Fallback HeurÃ­stico por Palavra-Chave na DescriÃ§Ã£o do Grupo
+    ' Layer 3: Fallback Heurístico por Palavra-Chave na Descrição do Grupo
     ' --------------------------------------------------------------------------
     If InStr(1, cleanDesc, "CERA", vbBinaryCompare) > 0 Then
         ResolveGroupName = "CERAS"
     ElseIf InStr(1, cleanDesc, "FREEZER", vbBinaryCompare) > 0 Then
         ResolveGroupName = "FREEZERS"
     ElseIf InStr(1, cleanDesc, "COPO", vbBinaryCompare) > 0 Then
-        ResolveGroupName = "COPOS E DESCARTÃVEIS"
+        ResolveGroupName = "COPOS E DESCART" & ChrW(193) & "VEIS"
     ElseIf Len(cleanDesc) > 0 Then
         ResolveGroupName = cleanDesc
     Else
@@ -230,8 +230,8 @@ Public Function ResolveGroupName(ByVal codGrupo As Variant, ByVal descGrupo As S
 End Function
 
 ' ==============================================================================
-' FunÃ§Ã£o: ExtractAndProcessPriceData
-' Finalidade: LÃª o cadastro mestre dProdutos, aplica o filtro de inclusÃ£o por SKU
+' Função: ExtractAndProcessPriceData
+' Finalidade: Lê o cadastro mestre dProdutos, aplica o filtro de inclusão por SKU
 '             a partir de CfPcfic, resolve a taxonomia em cascata e dimensiona
 '             a matriz de registros qualificados:
 '             (1: Section_ID, 2: Resolved_Group_Name, 3: Codigo, 4: Descricao,
@@ -265,14 +265,14 @@ Public Function ExtractAndProcessPriceData(ByRef outputRecords As Variant, ByRef
     ExtractAndProcessPriceData = False
     outCount = 0
     
-    ' 1. ValidaÃ§Ã£o precoce de tabelas obrigatÃ³rias
+    ' 1. Validação precoce de tabelas obrigatórias
     On Error Resume Next
     Set wsProd = wb.Worksheets(SHEET_PRODUTOS)
     On Error GoTo 0
     
     If wsProd Is Nothing Then
         Err.Raise vbObjectError + 1005, "mod_PriceList_Data.ExtractAndProcessPriceData", _
-            "A planilha mestre '" & SHEET_PRODUTOS & "' nÃ£o foi encontrada."
+            "A planilha mestre '" & SHEET_PRODUTOS & "' não foi encontrada."
     End If
     
     On Error Resume Next
@@ -281,51 +281,51 @@ Public Function ExtractAndProcessPriceData(ByRef outputRecords As Variant, ByRef
     
     If loProd Is Nothing Then
         Err.Raise vbObjectError + 1006, "mod_PriceList_Data.ExtractAndProcessPriceData", _
-            "A tabela mestre '" & TABLE_PRODUTOS & "' nÃ£o foi encontrada na planilha '" & SHEET_PRODUTOS & "'."
+            "A tabela mestre '" & TABLE_PRODUTOS & "' não foi encontrada na planilha '" & SHEET_PRODUTOS & "'."
     End If
     
     If loProd.DataBodyRange Is Nothing Then
         Err.Raise vbObjectError + 1007, "mod_PriceList_Data.ExtractAndProcessPriceData", _
-            "A tabela mestre '" & TABLE_PRODUTOS & "' nÃ£o possui linhas de dados."
+            "A tabela mestre '" & TABLE_PRODUTOS & "' não possui linhas de dados."
     End If
     
-    ' 2. Carregamento dos Ã­ndices em memÃ³ria
+    ' 2. Carregamento dos índices em memória
     Set dictPreco = LoadPriceIndex(wb)
     Set dictAssoc = LoadAssociationIndex(wb)
     
     ' 3. Mapeamento de colunas da tabela dProdutos
-    colCodigoProd = FindColumnIndex(loProd, "Codigo_Produto", "CÃ³digo", "Codigo")
-    colDescProd = FindColumnIndex(loProd, "Descricao_Produto", "DescriÃ§Ã£o", "Descricao")
+    colCodigoProd = FindColumnIndex(loProd, "Codigo_Produto", "C" & ChrW(243) & "digo", "Codigo")
+    colDescProd = FindColumnIndex(loProd, "Descricao_Produto", "Descri" & ChrW(231) & ChrW(227) & "o", "Descricao")
     colCodGrupo = FindColumnIndex(loProd, "Cod_Grupo_Produtos", "Cod_Grupo", "Grupo")
     colDescGrupo = FindColumnIndex(loProd, "Desc_Grupo_Produtos", "Desc_Grupo", "Descricao_Grupo")
-    colQtdPadrao = FindColumnIndex(loProd, "Qtd_Padrao", "Qtd PadrÃ£o", "Qtd_Embalagem", "Qtd")
+    colQtdPadrao = FindColumnIndex(loProd, "Qtd_Padrao", "Qtd Padr" & ChrW(227) & "o", "Qtd_Embalagem", "Qtd")
     
     If colCodigoProd = 0 Or colDescProd = 0 Then
         Err.Raise vbObjectError + 1008, "mod_PriceList_Data.ExtractAndProcessPriceData", _
-            "As colunas mÃ­nimas 'Codigo_Produto' e 'Descricao_Produto' nÃ£o foram localizadas em '" & TABLE_PRODUTOS & "'."
+            "As colunas mínimas 'Codigo_Produto' e 'Descricao_Produto' não foram localizadas em '" & TABLE_PRODUTOS & "'."
     End If
     
-    ' 4. ExtraÃ§Ã£o em memÃ³ria
+    ' 4. Extração em memória
     rawProducts = loProd.DataBodyRange.Value2
     totalRows = UBound(rawProducts, 1)
     
-    ' AlocaÃ§Ã£o temporÃ¡ria dinÃ¢mica (capacidade mÃ¡xima = total de produtos cadastrados)
+    ' Alocação temporária dinâmica (capacidade máxima = total de produtos cadastrados)
     ReDim tempRecords(1 To totalRows, 1 To 6)
     matchCount = 0
     
-    ' 5. IteraÃ§Ã£o e processamento algorÃ­tmico em memÃ³ria
+    ' 5. Iteração e processamento algorítmico em memória
     For i = 1 To totalRows
         sku = Trim(CStr(rawProducts(i, colCodigoProd)))
         
         If Len(sku) > 0 Then
-            ' Filtro de InclusÃ£o: Se o SKU nÃ£o consta na matriz de preÃ§os CfPcfic, descarta
+            ' Filtro de Inclusão: Se o SKU não consta na matriz de preços CfPcfic, descarta
             If dictPreco.Exists(sku) Then
                 matchCount = matchCount + 1
                 
-                ' Camada 1: ResoluÃ§Ã£o de SeÃ§Ã£o (2 primeiros caracteres do cÃ³digo)
+                ' Camada 1: Resolução de Seção (2 primeiros caracteres do código)
                 sectionId = Left$(sku, 2)
                 
-                ' Camadas 2 e 3: ResoluÃ§Ã£o de Grupo (AssociaÃ§Ã£o Exata -> HeurÃ­stica)
+                ' Camadas 2 e 3: Resolução de Grupo (Associação Exata -> Heurística)
                 Dim vCodG As Variant: vCodG = ""
                 Dim vDescG As String: vDescG = ""
                 
@@ -334,7 +334,7 @@ Public Function ExtractAndProcessPriceData(ByRef outputRecords As Variant, ByRef
                 
                 resolvedGroup = ResolveGroupName(vCodG, vDescG, dictAssoc)
                 
-                ' Quantidade padrÃ£o / embalagem
+                ' Quantidade padrão / embalagem
                 If colQtdPadrao > 0 Then
                     qtdVal = rawProducts(i, colQtdPadrao)
                     If IsNumeric(qtdVal) And Not IsEmpty(qtdVal) Then
@@ -356,7 +356,7 @@ Public Function ExtractAndProcessPriceData(ByRef outputRecords As Variant, ByRef
         End If
     Next i
     
-    ' 6. CompactaÃ§Ã£o da matriz final para o total efetivo de SKUs qualificados
+    ' 6. Compactação da matriz final para o total efetivo de SKUs qualificados
     If matchCount > 0 Then
         ReDim outputRecords(1 To matchCount, 1 To 6)
         For i = 1 To matchCount
@@ -375,9 +375,9 @@ Public Function ExtractAndProcessPriceData(ByRef outputRecords As Variant, ByRef
 End Function
 
 ' ==============================================================================
-' FunÃ§Ã£o Auxiliar: FindColumnIndex
-' Finalidade: Localiza com seguranÃ§a o Ã­ndice 1-based de uma coluna em um ListObject
-'             testando mÃºltiplos nomes possÃ­veis (aliases).
+' Função Auxiliar: FindColumnIndex
+' Finalidade: Localiza com segurança o índice 1-based de uma coluna em um ListObject
+'             testando múltiplos nomes possíveis (aliases).
 ' ==============================================================================
 Private Function FindColumnIndex(ByVal lo As ListObject, ParamArray possibleNames() As Variant) As Long
     Dim i As Long
@@ -395,7 +395,7 @@ Private Function FindColumnIndex(ByVal lo As ListObject, ParamArray possibleName
         If FindColumnIndex > 0 Then Exit Function
     Next targetName
     
-    ' Busca adicional case-insensitive se nÃ£o encontrou correspondÃªncia exata
+    ' Busca adicional case-insensitive se não encontrou correspondência exata
     Dim lc As ListColumn
     For Each targetName In possibleNames
         colName = UCase(Trim(CStr(targetName)))

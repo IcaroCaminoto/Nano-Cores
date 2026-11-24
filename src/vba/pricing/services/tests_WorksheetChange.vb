@@ -1,175 +1,141 @@
-Private Sub Worksheet_Change(ByVal Target As Range)
-    Dim ws As Worksheet: Set ws = Me
+' ==============================================================================
+' MÛdulo de Planilha: wsPcfic (aba "TabelaCustos", tabela CfPcfic)
+' Finalidade: Capturar a intenÁ„o do usu·rio e disparar o motor multidirecional:
+'   - ediÁ„o em coluna-‚ncora (Margem, PreÁo Final Cx/Un, PreÁo Base Cx/Un)
+'     -> recalcula com aquela ‚ncora;
+'   - cÛdigo digitado/colado -> busca o cadastro do produto na base externa
+'     (ADO/SQL) e grava DescriÁ„o, Qtd Padr„o, Grupo e Peso Kg como valores;
+'   - ediÁ„o em insumo (CÛdigo, Qtd, Custo, Frete, Acordo, Comiss„o, Outros,
+'     OperaÁ„o) -> recalcula mantendo a ‚ncora atual (impostos n„o s„o mais
+'     fÛrmulas, ent„o precisam ser recalculados pelo motor).
+' DependÍncias: clsListState, mod_PricingSchema, mod_Multidirectional_Engine,
+'   mod_PricingCatalogo;
+'   Worksheet_Activate/Deactivate usam mod_Init (InicializarTodasTabelas,
+'   AlternarTela) do arquivo de produÁ„o.
+' InstalaÁ„o: substituir TODO o cÛdigo do mÛdulo da aba wsPcfic por este.
+' ==============================================================================
+Option Explicit
 
-    Dim idxMargem As Long, idxPrecoUn As Long, idxPrecoCx As Long
-    Dim idxBaseUn As Long, idxBaseCx As Long
-    Dim modoAlvo As String
-
-    Dim EstadoTabela As New clsListState
-    If Not EstadoTabela.Init() Then Exit Sub
-
-    If Intersect(Target, EstadoTabela.DataBodyPadrao) Is Nothing Then Exit Sub
-
-    idxMargem = EstadoTabela.IndiceColuna("Margem Bruta (%)")
-    idxPrecoUn = EstadoTabela.IndiceColuna("Pre√ßo Final Unit√°rio")
-    idxPrecoCx = EstadoTabela.IndiceColuna("Pre√ßo Final Caixa")
-    idxBaseUn = EstadoTabela.IndiceColuna("P.Base Un - Ex IPI/ST")
-    idxBaseCx = EstadoTabela.IndiceColuna("P. Base - Ex IPI/ST")
-    
-    If idxMargem = 0 Or idxPrecoUn = 0 Or idxPrecoCx = 0 Or idxBaseUn = 0 Or idxBaseCx = 0 Then Exit Sub
-    
-    ' =========================================================================
-    ' - LEITURA DE INTEN√á√ÉO MATEM√ÅTICA
-    ' A compara√ß√£o √© feita avaliando se a coluna alvo editada (Target.Column) 
-    ' bate com o eixo mapeado pela classe. R√°pido, leve e imposs√≠vel de falhar.
-    ' =========================================================================
-    modoAlvo = ""
-    
-    If Target.Column = idxMargem Then
-        modoAlvo = "Margem Bruta"
-    ElseIf Target.Column = idxPrecoUn Then
-        modoAlvo = "Pre√ßo Final Unit√°rio"
-    ElseIf Target.Column = idxPrecoCx Then
-        modoAlvo = "Pre√ßo Final Caixa"
-    ElseIf Target.Column = idxBaseUn Then
-        modoAlvo = "Pre√ßo Base Unit√°rio"
-    ElseIf Target.Column = idxBaseCx Then
-        modoAlvo = "Pre√ßo Base Caixa"
-    End If
-    
-    If modoAlvo = "" Then Exit Sub
-
-    On Error GoTo SaidaLimpa
-    Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-    
-    Call MotorPrecificacaoMultidirecional(modoAlvo)
-    
-SaidaLimpa:
-    Application.EnableEvents = True 
-    Application.ScreenUpdating = True
-    Application.Calculation = xlCalculationAutomatic
-    
-    If Err.Number <> 0 Then
-        MsgBox "Falha cr√≠tica no c√°lculo: " & Err.Description, vbCritical, "Erro " & Err.Number
-    End If
-End Sub
-
-Private Sub AplicarIndicacaoVisual(CfPcfic As ListObject, modoAtual As String)
-    Dim rngMargem As Range, rngPrecoU As Range, rngPrecoC As Range
-    
-    Set rngMargem = CfPcfic.ListColumns("Margem Bruta (%)").DataBodyRange
-    Set rngPrecoU = CfPcfic.ListColumns("Pre√ßo Final Unit√°rio").DataBodyRange
-    Set rngPrecoC = CfPcfic.ListColumns("Pre√ßo Final Caixa").DataBodyRange
-    
-    ' 1. Limpa formata√ß√µes de todas as 3 colunas envolvidas
-    With Union(rngMargem, rngPrecoU, rngPrecoC)
-        .Font.Color = RGB(200, 200, 200)
-        .Font.ColorIndex = xlAutomatic
-        .Font.Bold = False
-        .Font.Size = 10
-    End With
-    
-    ' 2. Colore apenas a √¢ncora atual
-    If modoAtual = "Margem Bruta" Then
-        With rngMargem
-            .Font.Color = RGB(20, 66, 114)
-            .Font.Bold = True
-            .Font.Size = 12
-        End With
-    ElseIf modoAtual = "Pre√ßo Unit√°rio" Or modoAtual = "Pre√ßo Final" Then
-        With rngPrecoU
-            .Font.Color = RGB(20, 66, 114)
-            .Font.Bold = True
-            .Font.Size = 12
-        End With
-    ElseIf modoAtual = "Pre√ßo Caixa" Then
-        With rngPrecoC
-            .Font.Color = RGB(20, 66, 114)
-            .Font.Bold = True
-            .Font.Size = 12
-        End With
-    End If
-End Sub
-
-Public Sub BotaoRefresh_AtualizarMotor()
-    ' 1. Inicializa e valida as estruturas
+Private Sub Worksheet_Activate()
     Call InicializarTodasTabelas
-    
-    If CfPcfic Is Nothing Then Exit Sub
-    If CfPcfic.DataBodyRange Is Nothing Then
-        MsgBox "N√£o h√° dados para atualizar.", vbExclamation, "@Cerulean"
-        Exit Sub
+    On Error Resume Next
+    Me.Shapes("botaoMaximizar").Visible = msoTrue
+    On Error GoTo 0
+End Sub
+
+Private Sub Worksheet_Deactivate()
+    If Application.DisplayFullScreen = True Then
+        Call AlternarTela
     End If
-    
-    ' 2. Mapeamento das colunas vitais para descobrir o Estado Atual
-    Dim colMargem As Long, colPrecoU As Long, colPrecoC As Long
-    
-    With CfPcfic.ListColumns
-        colMargem = .Item("Margem Bruta (%)").Index
-        colPrecoU = .Item("Pre√ßo Final Unit√°rio").Index
-        colPrecoC = .Item("Pre√ßo Final Caixa").Index
-    End With
-    
-    ' =========================================================================
-    ' LEITURA DE ESTADO VISUAL (Stateless Architecture)
-    ' Inspeciona a formata√ß√£o da primeira linha de dados para descobrir o foco
-    ' =========================================================================
-    Dim modoDetectado As String
-    modoDetectado = ""
-    
-    ' Captura a primeira linha √∫til da tabela para testes de UI
-    Dim primeiraLinhaRange As Range
-    Set primeiraLinhaRange = CfPcfic.DataBodyRange.Rows(1)
-    
-    If primeiraLinhaRange.Cells(1, colMargem).Font.Bold = True Then
-        modoDetectado = "Margem Bruta"
-    ElseIf primeiraLinhaRange.Cells(1, colPrecoU).Font.Bold = True Then
-        modoDetectado = "Pre√ßo Unit√°rio"
-    ElseIf primeiraLinhaRange.Cells(1, colPrecoC).Font.Bold = True Then
-        modoDetectado = "Pre√ßo Caixa"
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim EstadoTabela As New clsListState
+    Dim alvo As Range
+    Dim area As Range
+    Dim coluna As Range
+    Dim celula As Range
+    Dim linhasCodigo As New Collection
+    Dim nomeColuna As String
+    Dim modo As String
+    Dim modoAlvo As String
+    Dim modosVistos As String
+    Dim qtdAncoras As Long
+    Dim temInsumo As Boolean
+
+    If Not EstadoTabela.Init() Then Exit Sub
+    If Not EstadoTabela.Planilha Is Me Then Exit Sub
+    If Not EstadoTabela.TemDados Then Exit Sub
+
+    Set alvo = Intersect(Target, EstadoTabela.DataBodyPadrao)
+    If alvo Is Nothing Then Exit Sub
+
+    ' --------------------------------------------------------------------------
+    ' Leitura de intenÁ„o: o cabeÁalho de cada coluna editada define o papel
+    ' --------------------------------------------------------------------------
+    For Each area In alvo.Areas
+        For Each coluna In area.Columns
+            nomeColuna = EstadoTabela.NomeColunaDaPlanilha(coluna.Column)
+            modo = ModoPorColuna(nomeColuna)
+
+            If Len(modo) > 0 Then
+                If Not SomenteNumerosOuVazio(coluna) Then
+                    MsgBox "A coluna """ & nomeColuna & """ aceita apenas n˙meros." & vbCrLf & _
+                           "A ediÁ„o foi desfeita.", vbExclamation
+                    Call DesfazerEdicao
+                    Exit Sub
+                End If
+                If InStr(1, modosVistos, "|" & modo & "|") = 0 Then
+                    modosVistos = modosVistos & "|" & modo & "|"
+                    qtdAncoras = qtdAncoras + 1
+                    modoAlvo = modo
+                End If
+            ElseIf ColunaEhInsumo(nomeColuna) Then
+                temInsumo = True
+                If nomeColuna = Col_Codigo() Then
+                    For Each celula In coluna.Cells
+                        linhasCodigo.Add celula.Row - EstadoTabela.DataBodyPadrao.Row + 1
+                    Next celula
+                End If
+            End If
+        Next coluna
+    Next area
+
+    If qtdAncoras = 0 And Not temInsumo Then Exit Sub
+
+    If qtdAncoras > 1 Then
+        MsgBox "Mais de uma coluna-‚ncora foi alterada de uma vez." & vbCrLf & _
+               "O rec·lculo vai manter a ‚ncora atual (coluna em negrito).", vbExclamation
+        modoAlvo = vbNullString
     End If
-    
-    ' Fallback de seguran√ßa: Se o arquivo acabou de ser aberto e ningu√©m digitou nada,
-    ' l√™ a c√©lula A1 ou assume "Margem Bruta" como padr√£o de f√°brica.
-    If modoDetectado = "" Then
-        Dim estadoCidadao As String
-        estadoCidadao = wsPcfic.Range("A1").Value
-        If estadoCidadao = "Pre√ßo Final" Then
-            modoDetectado = "Pre√ßo Unit√°rio"
-        Else
-            modoDetectado = "Margem Bruta"
-        End If
+
+    ' CÛdigo novo: cadastro da base externa antes do c·lculo (Qtd Padr„o entra
+    ' no preÁo unit·rio). Se a base n„o puder ser lida, n„o recalcula.
+    If linhasCodigo.Count > 0 Then
+        If Not Pricing_PreencherCadastro(linhasCodigo) Then Exit Sub
     End If
-    
-    ' =========================================================================
-    ' 3. EXECU√á√ÉO DO RECALCULO MASSIVO
-    ' =========================================================================
-    On Error GoTo SaidaErro
-    
-    ' Maximiza a performance e blinda o ciclo de eventos
+
+    ' Vazio = ‚ncora atual (detectada pelo negrito)
+    Call Pricing_RecalcularTabela(modoAlvo)
+End Sub
+
+' ==============================================================================
+' FunÁ„o Privada: SomenteNumerosOuVazio
+' ==============================================================================
+Private Function SomenteNumerosOuVazio(ByVal rng As Range) As Boolean
+    Dim arr As Variant
+    Dim v As Variant
+
+    arr = rng.Value2
+    If IsArray(arr) Then
+        For Each v In arr
+            If Not ValorAceito(v) Then Exit Function
+        Next v
+    Else
+        If Not ValorAceito(arr) Then Exit Function
+    End If
+    SomenteNumerosOuVazio = True
+End Function
+
+Private Function ValorAceito(ByVal v As Variant) As Boolean
+    If IsError(v) Then Exit Function
+    If IsEmpty(v) Then ValorAceito = True: Exit Function
+    If VarType(v) = vbString Then
+        ValorAceito = (Len(Trim$(v)) = 0)
+        Exit Function
+    End If
+    ValorAceito = IsNumeric(v)
+End Function
+
+' ==============================================================================
+' Procedimento Privado: DesfazerEdicao
+' ==============================================================================
+Private Sub DesfazerEdicao()
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
     Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-    
-    ' Sincroniza a interface visual de seguran√ßa (Garante o Azul Cer√∫leo no lugar certo)
-    Call AplicarIndicacaoVisual(CfPcfic, modoDetectado)
-    
-    ' Aciona o Motor em Mem√≥ria passando a √¢ncora correta detectada
-    Call MotorPrecificacaoBidirecional(CfPcfic, modoDetectado)
-    
-    ' For√ßa o rec√°lculo final das f√≥rmulas nativas de apoio (PROCVs, impostos da grade)
-    wsPcfic.Calculate
-
-SaidaLimpa:
-    ' Devolve as chaves do ambiente de volta ao Excel
-    Application.EnableEvents = True
-    Application.ScreenUpdating = True
-    Application.Calculation = xlCalculationAutomatic
-    Exit Sub
-
-SaidaErro:
-    MsgBox "Erro ao sincronizar motor de c√°lculo: " & Err.Description, vbCritical, "@Cerulean"
-    Resume SaidaLimpa
+    On Error Resume Next
+    Application.Undo
+    On Error GoTo 0
+    Application.EnableEvents = prevEvents
 End Sub

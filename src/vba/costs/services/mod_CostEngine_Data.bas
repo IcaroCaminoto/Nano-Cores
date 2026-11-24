@@ -11,12 +11,6 @@ Attribute VB_Name = "mod_CostEngine_Data"
 
 Option Explicit
 
-' ------------------------------------------------------------------------------
-' Constantes de caminhos padrão
-' ------------------------------------------------------------------------------
-Public Const DB_PRODUCTS_FILE As String = "G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Produtos.xlsx"
-Public Const DB_PARAM_ASSOC_FILE As String = "G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Parametros_Associacao_Produtos.xlsx"
-
 ' ==============================================================================
 ' Função Auxiliar Privada: BuildExcelConnectionString
 ' Finalidade: Montar a cadeia de conexão OLEDB do provedor Microsoft.ACE.OLEDB.12.0
@@ -52,7 +46,7 @@ Public Function LoadProductMaster(Optional ByVal customFilePath As String = vbNu
     If Len(Trim$(customFilePath)) > 0 Then
         dbPath = customFilePath
     Else
-        dbPath = ResolveDatabasePath("Cerulean_DB_Produtos.xlsx", DB_PRODUCTS_FILE)
+        dbPath = Config_ResolveDatabaseFile(DB_FILE_PRODUTOS)
     End If
     
     ' Validação de existência do arquivo físico
@@ -143,7 +137,7 @@ Public Function LoadAssociationClusters(ByRef outFamilyMap As Object, _
     If Len(Trim$(customFilePath)) > 0 Then
         dbPath = customFilePath
     Else
-        dbPath = ResolveDatabasePath("Cerulean_DB_Parametros_Associacao_Produtos.xlsx", DB_PARAM_ASSOC_FILE)
+        dbPath = Config_ResolveDatabaseFile(DB_FILE_PARAM_ASSOC)
     End If
     
     ' Validação de existência do arquivo físico
@@ -365,38 +359,6 @@ Private Function NormalizeHeader(ByVal rawText As String) As String
     cleaned = Replace(cleaned, "Ç", "C")
     
     NormalizeHeader = cleaned
-End Function
-
-' ==============================================================================
-' Função Auxiliar Privada: ResolveDatabasePath
-' Finalidade: Resolver dinamicamente a localização da base de dados, verificando
-'             primeiro caminhos relativos ao ThisWorkbook e aplicando o fallback
-'             absoluto contratado na SPEC caso necessário.
-' ==============================================================================
-Private Function ResolveDatabasePath(ByVal fileName As String, ByVal absoluteFallback As String) As String
-    Dim candidate As String
-    On Error Resume Next
-    If Not ThisWorkbook Is Nothing Then
-        If Len(ThisWorkbook.Path) > 0 Then
-            ' 1. Tenta relativo ao caminho do projeto (Nano Cores/src/sheets/Cerulean_DB/database/...)
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "src" & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolveDatabasePath = candidate
-                Exit Function
-            End If
-            
-            ' 2. Tenta a partir da pasta raiz sheets/
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolveDatabasePath = candidate
-                Exit Function
-            End If
-        End If
-    End If
-    On Error GoTo 0
-    
-    ' 3. Aplica o caminho absoluto definido no contrato da SPEC
-    ResolveDatabasePath = absoluteFallback
 End Function
 
 ' ==============================================================================

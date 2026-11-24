@@ -13,11 +13,6 @@ Attribute VB_Name = "mod_CostEngine_Persistence"
 
 Option Explicit
 
-' ------------------------------------------------------------------------------
-' Constante do caminho padrão de destino
-' ------------------------------------------------------------------------------
-Public Const DB_COSTS_FILE As String = "G:\Ícaro\Cerulean_DB\sheets\database\Cerulean_DB_Custos.xlsx"
-
 ' ==============================================================================
 ' Função: CheckFileLock
 ' Finalidade: Testar se o arquivo físico de destino está aberto e bloqueado por outro
@@ -96,7 +91,7 @@ Public Sub PersistToDatabase(ByRef outputMatrix As Variant, _
     If Len(Trim$(customFilePath)) > 0 Then
         targetPath = customFilePath
     Else
-        targetPath = ResolveDatabasePath("Cerulean_DB_Custos.xlsx", DB_COSTS_FILE)
+        targetPath = Config_ResolveDatabaseFile(DB_FILE_CUSTOS)
     End If
     
     If Len(Dir(targetPath)) = 0 Then
@@ -245,30 +240,6 @@ Private Function ListObjectExists(ByVal wb As Workbook, ByVal tableName As Strin
     On Error GoTo 0
 End Function
 
-Private Function ResolveDatabasePath(ByVal fileName As String, ByVal absoluteFallback As String) As String
-    Dim candidate As String
-    On Error Resume Next
-    If Not ThisWorkbook Is Nothing Then
-        If Len(ThisWorkbook.Path) > 0 Then
-            ' Relativo à pasta do projeto
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "src" & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolveDatabasePath = candidate
-                Exit Function
-            End If
-            
-            candidate = ThisWorkbook.Path & Application.PathSeparator & "sheets" & Application.PathSeparator & "Cerulean_DB" & Application.PathSeparator & "database" & Application.PathSeparator & fileName
-            If Len(Dir(candidate)) > 0 Then
-                ResolveDatabasePath = candidate
-                Exit Function
-            End If
-        End If
-    End If
-    On Error GoTo 0
-    
-    ResolveDatabasePath = absoluteFallback
-End Function
-
 ' ==============================================================================
 ' Procedimento SafeZone: Test_CostEngine_Persistence_SafeZone
 ' Finalidade: Validar o teste de bloqueio de arquivo (CheckFileLock) e regras de nomenclatura.
@@ -277,7 +248,7 @@ Public Sub Test_CostEngine_Persistence_SafeZone()
     Dim testPath As String
     Dim isLocked As Boolean
     
-    testPath = ResolveDatabasePath("Cerulean_DB_Custos.xlsx", DB_COSTS_FILE)
+    testPath = Config_ResolveDatabaseFile(DB_FILE_CUSTOS)
     
     If Len(Dir(testPath)) > 0 Then
         isLocked = CheckFileLock(testPath)

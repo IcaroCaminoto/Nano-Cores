@@ -1,18 +1,18 @@
 Attribute VB_Name = "mod_PriceList_Renderer"
 ' ==============================================================================
-' M√≥dulo: mod_PriceList_Renderer
-' Finalidade: Renderiza√ß√£o em lote dos dados na planilha Tabela_Preco,
-'             inje√ß√£o de quebras de se√ß√£o por categoria/grupo, formata√ß√£o visual
-'             ink-efficient (baixo consumo de tinta) e parametriza√ß√£o de impress√£o
-'             (A4 Retrato, ajustado a 1 p√°gina de largura).
-' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compat√≠vel)
+' MÛdulo: mod_PriceList_Renderer
+' Finalidade: RenderizaÁ„o em lote dos dados na planilha Tabela_Preco,
+'             injeÁ„o de quebras de seÁ„o por categoria/grupo, formataÁ„o visual
+'             ink-efficient (baixo consumo de tinta) e parametrizaÁ„o de impress„o
+'             (A4 Retrato, ajustado a 1 p·gina de largura).
+' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatÌvel)
 ' ==============================================================================
 Option Explicit
 
 Private Const SHEET_TABELA_PRECO As String = "Tabela_Preco"
 
-' Paleta de cores corporativa Ink-Efficient (econ√¥mica para impress√£o f√≠sica)
-Private Const COLOR_NAVY_TITLE As Long = 7488020    ' RGB(20, 66, 114) - Azul Cer√∫leo
+' Paleta de cores corporativa Ink-Efficient (econÙmica para impress„o fÌsica)
+Private Const COLOR_NAVY_TITLE As Long = 7488020    ' RGB(20, 66, 114) - Azul Cer˙leo
 Private Const COLOR_SECTION_BG As Long = 15790320   ' RGB(240, 240, 240) - Cinza suave neutro
 Private Const COLOR_SECTION_TEXT As Long = 2105376  ' RGB(32, 32, 32) - Quase preto
 Private Const COLOR_HEADER_BG As Long = 16316664    ' RGB(248, 248, 248) - Fundo quase branco
@@ -25,8 +25,8 @@ Private Const FORMAT_CURRENCY As String = """R$ ""#,##0.00"
 ' ==============================================================================
 ' Procedimento: RenderOutputSheet / RenderOutputCatalog
 ' Finalidade: Prepara a planilha Tabela_Preco, organiza os produtos em grupos
-'             taxon√¥micos homog√™neos e despeja blocos de dados em mem√≥ria,
-'             aplicando layout pronto para impress√£o em papel.
+'             taxonÙmicos homogÍneos e despeja blocos de dados em memÛria,
+'             aplicando layout pronto para impress„o em papel.
 ' ==============================================================================
 Public Sub RenderOutputSheet(ByRef outputData As Variant, ByVal rowCount As Long, Optional ByVal wb As Workbook = Nothing)
     Call RenderOutputCatalog(outputData, rowCount, wb)
@@ -45,7 +45,7 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
     Dim currentRow As Long
     
     ' --------------------------------------------------------------------------
-    ' 1. Localiza√ß√£o ou instancia√ß√£o da aba de destino Tabela_Preco
+    ' 1. LocalizaÁ„o ou instanciaÁ„o da aba de destino Tabela_Preco
     ' --------------------------------------------------------------------------
     On Error Resume Next
     Set wsOut = wb.Worksheets(SHEET_TABELA_PRECO)
@@ -56,17 +56,17 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
         wsOut.Name = SHEET_TABELA_PRECO
         wsOut.Tab.Color = COLOR_NAVY_TITLE
     Else
-        ' Limpeza completa de conte√∫dos, formatos e configura√ß√µes pr√©vias
+        ' Limpeza completa de conte˙dos, formatos e configuraÁıes prÈvias
         wsOut.Cells.Clear
     End If
     
-    ' Garante exibi√ß√£o em modo normal e habilita√ß√£o de linhas de grade
+    ' Garante exibiÁ„o em modo normal e habilitaÁ„o de linhas de grade
     wsOut.Activate
     ActiveWindow.View = xlNormalView
     ActiveWindow.DisplayGridlines = True
     
     ' --------------------------------------------------------------------------
-    ' 2. Agrupamento por Categoria/Taxonomia (Scripting.Dictionary de cole√ß√µes)
+    ' 2. Agrupamento por Categoria/Taxonomia (Scripting.Dictionary de coleÁıes)
     ' --------------------------------------------------------------------------
     Set dictGroups = CreateObject("Scripting.Dictionary")
     dictGroups.CompareMode = 1 ' vbTextCompare
@@ -97,14 +97,14 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
     Call SortStringArray(groupList, 1, groupCount)
     
     ' --------------------------------------------------------------------------
-    ' 3. Renderiza√ß√£o do Cabe√ßalho Institucional do Documento (Linhas 1 a 2)
+    ' 3. RenderizaÁ„o do CabeÁalho Institucional do Documento (Linhas 1 a 2)
     ' --------------------------------------------------------------------------
     currentRow = 1
     
-    ' T√≠tulo Principal
+    ' TÌtulo Principal
     With wsOut.Range("A1:D1")
         .Merge
-        .Value = "CAT√ÅLOGO DE PRODUTOS & TABELA DE PRE√áOS"
+        .Value = "CAT¡LOGO DE PRODUTOS & TABELA DE PRE«OS"
         .Font.Name = FONT_FAMILY
         .Font.Size = 13
         .Font.Bold = True
@@ -114,11 +114,11 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
         .RowHeight = 24
     End With
     
-    ' Subt√≠tulo com Timestamp e Especifica√ß√£o da Base
+    ' SubtÌtulo com Timestamp e EspecificaÁ„o da Base
     With wsOut.Range("A2:D2")
         .Merge
-        .Value = "Emiss√£o: " & Format(Now, "dd/mm/yyyy hh:nn") & _
-                 "  |  Base: Pre√ßo Base (Ex IPI/ST)  |  Valores sujeitos a altera√ß√£o"
+        .Value = "Emiss„o: " & Format(Now, "dd/mm/yyyy hh:nn") & _
+                 "  |  Base: PreÁo Base (Ex IPI/ST)  |  Valores sujeitos a alteraÁ„o"
         .Font.Name = FONT_FAMILY
         .Font.Size = 8.5
         .Font.Italic = True
@@ -131,12 +131,12 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
         .Borders(xlEdgeBottom).Weight = xlThin
     End With
     
-    currentRow = 3 ' Linha de espa√ßamento inicial
+    currentRow = 3 ' Linha de espaÁamento inicial
     wsOut.Rows(currentRow).RowHeight = 8
     currentRow = 4
     
     ' --------------------------------------------------------------------------
-    ' 4. Renderiza√ß√£o dos Grupos e seus respectivos registros em bloco
+    ' 4. RenderizaÁ„o dos Grupos e seus respectivos registros em bloco
     ' --------------------------------------------------------------------------
     Dim g As Long
     Dim currentGrpCollection As Collection
@@ -151,7 +151,7 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
         grpItemCount = currentGrpCollection.Count
         
         If grpItemCount > 0 Then
-            ' --- 4.1 Linha de Quebra de Se√ß√£o (Section Break Header) ---
+            ' --- 4.1 Linha de Quebra de SeÁ„o (Section Break Header) ---
             With wsOut.Range(wsOut.Cells(currentRow, 1), wsOut.Cells(currentRow, 4))
                 .Merge
                 .Value = " " & UCase(grpName) & " (" & grpItemCount & " ITENS)"
@@ -172,11 +172,11 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
             End With
             currentRow = currentRow + 1
             
-            ' --- 4.2 Cabe√ßalhos das Colunas ---
-            wsOut.Cells(currentRow, 1).Value = "C√ìDIGO"
-            wsOut.Cells(currentRow, 2).Value = "DESCRI√á√ÉO DO PRODUTO"
+            ' --- 4.2 CabeÁalhos das Colunas ---
+            wsOut.Cells(currentRow, 1).Value = "C”DIGO"
+            wsOut.Cells(currentRow, 2).Value = "DESCRI«√O DO PRODUTO"
             wsOut.Cells(currentRow, 3).Value = "QTD. EMB."
-            wsOut.Cells(currentRow, 4).Value = "PRE√áO BASE"
+            wsOut.Cells(currentRow, 4).Value = "PRE«O BASE"
             
             With wsOut.Range(wsOut.Cells(currentRow, 1), wsOut.Cells(currentRow, 4))
                 .Font.Name = FONT_FAMILY
@@ -196,7 +196,7 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
             wsOut.Cells(currentRow, 4).HorizontalAlignment = xlRight
             currentRow = currentRow + 1
             
-            ' --- 4.3 Despejo em Mem√≥ria dos Produtos do Grupo (Single-shot) ---
+            ' --- 4.3 Despejo em MemÛria dos Produtos do Grupo (Single-shot) ---
             ReDim subArray(1 To grpItemCount, 1 To 4)
             For itemIdx = 1 To grpItemCount
                 sourceRow = currentGrpCollection(itemIdx)
@@ -209,10 +209,10 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
             Dim dataStartRow As Long: dataStartRow = currentRow
             Dim dataEndRow As Long: dataEndRow = currentRow + grpItemCount - 1
             
-            ' Atribui√ß√£o em bloco direto √† planilha (zero loop de c√©lulas)
+            ' AtribuiÁ„o em bloco direto ‡ planilha (zero loop de cÈlulas)
             wsOut.Cells(dataStartRow, 1).Resize(grpItemCount, 4).Value2 = subArray
             
-            ' Formata√ß√£o do bloco de dados deste grupo
+            ' FormataÁ„o do bloco de dados deste grupo
             With wsOut.Range(wsOut.Cells(dataStartRow, 1), wsOut.Cells(dataEndRow, 4))
                 .Font.Name = FONT_FAMILY
                 .Font.Size = 9
@@ -227,7 +227,7 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
                 .Borders(xlEdgeBottom).Weight = xlThin
             End With
             
-            ' Alinhamentos de coluna e formato num√©rico do bloco
+            ' Alinhamentos de coluna e formato numÈrico do bloco
             wsOut.Range(wsOut.Cells(dataStartRow, 1), wsOut.Cells(dataEndRow, 1)).HorizontalAlignment = xlCenter
             wsOut.Range(wsOut.Cells(dataStartRow, 2), wsOut.Cells(dataEndRow, 2)).HorizontalAlignment = xlLeft
             wsOut.Range(wsOut.Cells(dataStartRow, 3), wsOut.Cells(dataEndRow, 3)).HorizontalAlignment = xlCenter
@@ -238,47 +238,47 @@ Public Sub RenderOutputCatalog(ByRef outputData As Variant, ByVal recordCount As
             
             currentRow = dataEndRow + 1
             
-            ' Espa√ßamento entre grupos
+            ' EspaÁamento entre grupos
             wsOut.Rows(currentRow).RowHeight = 8
             currentRow = currentRow + 1
         End If
     Next g
     
     ' --------------------------------------------------------------------------
-    ' 5. Aplica√ß√£o das diretrizes de impress√£o e ajustes finais de coluna
+    ' 5. AplicaÁ„o das diretrizes de impress„o e ajustes finais de coluna
     ' --------------------------------------------------------------------------
     Call ApplyPrintFormatting(wsOut, currentRow - 1)
 End Sub
 
 ' ==============================================================================
 ' Procedimento: ApplyPrintFormatting
-' Finalidade: Aplica parametriza√ß√£o A4 Retrato, FitToPagesWide = 1,
-'             repeti√ß√£o de t√≠tulos $1:$2 e larguras de coluna balanceadas.
+' Finalidade: Aplica parametrizaÁ„o A4 Retrato, FitToPagesWide = 1,
+'             repetiÁ„o de tÌtulos $1:$2 e larguras de coluna balanceadas.
 ' ==============================================================================
 Public Sub ApplyPrintFormatting(ByVal targetWs As Worksheet, ByVal lastRow As Long)
     If targetWs Is Nothing Then Exit Sub
     
-    ' 1. Larguras de colunas equilibradas para propor√ß√£o A4 Retrato
-    targetWs.Columns("A").ColumnWidth = 14  ' C√≥digo
-    targetWs.Columns("B").ColumnWidth = 48  ' Descri√ß√£o
+    ' 1. Larguras de colunas equilibradas para proporÁ„o A4 Retrato
+    targetWs.Columns("A").ColumnWidth = 14  ' CÛdigo
+    targetWs.Columns("B").ColumnWidth = 48  ' DescriÁ„o
     targetWs.Columns("C").ColumnWidth = 12  ' Qtd Embalagem
-    targetWs.Columns("D").ColumnWidth = 17  ' Pre√ßo Base
+    targetWs.Columns("D").ColumnWidth = 17  ' PreÁo Base
     
-    ' 2. Configura√ß√µes de Impress√£o (A4, 1 p√°gina de largura)
+    ' 2. ConfiguraÁıes de Impress„o (A4, 1 p·gina de largura)
     With targetWs.PageSetup
         .Orientation = xlPortrait
         .PaperSize = xlPaperA4
         
-        ' Ajuste para 1 p√°gina de largura sem travar a altura (p√°ginas verticais livres)
+        ' Ajuste para 1 p·gina de largura sem travar a altura (p·ginas verticais livres)
         .Zoom = False
         .FitToPagesWide = 1
         .FitToPagesTall = False
         
-        ' Repeti√ß√£o de cabe√ßalho em todas as p√°ginas impressas
+        ' RepetiÁ„o de cabeÁalho em todas as p·ginas impressas
         .PrintTitleRows = "$1:$2"
         .PrintTitleColumns = ""
         
-        ' Margens otimizadas para impress√£o em papel
+        ' Margens otimizadas para impress„o em papel
         .LeftMargin = Application.InchesToPoints(0.4)
         .RightMargin = Application.InchesToPoints(0.4)
         .TopMargin = Application.InchesToPoints(0.6)
@@ -286,24 +286,24 @@ Public Sub ApplyPrintFormatting(ByVal targetWs As Worksheet, ByVal lastRow As Lo
         .HeaderMargin = Application.InchesToPoints(0.3)
         .FooterMargin = Application.InchesToPoints(0.3)
         
-        ' Centraliza√ß√£o horizontal na p√°gina
+        ' CentralizaÁ„o horizontal na p·gina
         .CenterHorizontally = True
         .CenterVertically = False
         
-        ' Rodap√© com numera√ß√£o de p√°gina e data
+        ' RodapÈ com numeraÁ„o de p·gina e data
         .LeftFooter = "&8Cerulean Cores - Tabela Comercial"
-        .RightFooter = "&8P√°gina &P de &N"
+        .RightFooter = "&8P·gina &P de &N"
         
         .PrintGridlines = False
     End With
     
-    ' Seleciona a c√©lula A1 para deixar a interface limpa
+    ' Seleciona a cÈlula A1 para deixar a interface limpa
     targetWs.Range("A1").Select
 End Sub
 
 ' ==============================================================================
-' Fun√ß√£o Auxiliar: SortStringArray
-' Finalidade: Algoritmo QuickSort in-memory para ordena√ß√£o alfab√©tica de strings.
+' FunÁ„o Auxiliar: SortStringArray
+' Finalidade: Algoritmo QuickSort in-memory para ordenaÁ„o alfabÈtica de strings.
 ' ==============================================================================
 Private Sub SortStringArray(ByRef arr() As String, ByVal leftIdx As Long, ByVal rightIdx As Long)
     Dim i As Long: i = leftIdx

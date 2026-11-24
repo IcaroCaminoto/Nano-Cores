@@ -1,18 +1,18 @@
 Attribute VB_Name = "mod_PriceList_Main"
 ' ==============================================================================
-' M√≥dulo: mod_PriceList_Main
-' Finalidade: Ponto de entrada, orquestra√ß√£o de pipeline, blindagem de estado do
-'             Excel (Zero UI Blocking), medi√ß√£o de tempo e recupera√ß√£o de erros.
-' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compat√≠vel)
+' MÛdulo: mod_PriceList_Main
+' Finalidade: Ponto de entrada, orquestraÁ„o de pipeline, blindagem de estado do
+'             Excel (Zero UI Blocking), mediÁ„o de tempo e recuperaÁ„o de erros.
+' Ambiente: Microsoft Excel 2016+ / Microsoft 365 (VBA 7.1, 64-bit compatÌvel)
 ' ==============================================================================
 Option Explicit
 
-Private Const APP_TITLE As String = "Gerador de Tabela de Pre√ßos"
+Private Const APP_TITLE As String = "Gerador de Tabela de PreÁos"
 
 ' ==============================================================================
 ' Procedimento: GeneratePriceList
-' Finalidade: Ponto de entrada principal da automa√ß√£o. Orquestra a verifica√ß√£o
-'             de dados, resolu√ß√£o taxon√¥mica e renderiza√ß√£o da tabela de pre√ßos.
+' Finalidade: Ponto de entrada principal da automaÁ„o. Orquestra a verificaÁ„o
+'             de dados, resoluÁ„o taxonÙmica e renderizaÁ„o da tabela de preÁos.
 ' ==============================================================================
 Public Sub GeneratePriceList()
     Dim prevScreenUpdating As Boolean
@@ -28,7 +28,7 @@ Public Sub GeneratePriceList()
     Dim isSuccess As Boolean
     
     ' --------------------------------------------------------------------------
-    ' 1. Captura de estados globais para restaura√ß√£o incondicional
+    ' 1. Captura de estados globais para restauraÁ„o incondicional
     ' --------------------------------------------------------------------------
     prevScreenUpdating = Application.ScreenUpdating
     prevEnableEvents = Application.EnableEvents
@@ -49,36 +49,36 @@ Public Sub GeneratePriceList()
     Set wbTarget = ThisWorkbook
     
     ' --------------------------------------------------------------------------
-    ' 3. Auto-provisionamento de par√¢metros e fontes auxiliares
+    ' 3. Auto-provisionamento de par‚metros e fontes auxiliares
     ' --------------------------------------------------------------------------
     Call EnsureParameterSheetExists(wbTarget)
     
     ' --------------------------------------------------------------------------
-    ' 4. Extra√ß√£o em mem√≥ria, filtro de inclus√£o e resolu√ß√£o taxon√¥mica
+    ' 4. ExtraÁ„o em memÛria, filtro de inclus„o e resoluÁ„o taxonÙmica
     ' --------------------------------------------------------------------------
     isSuccess = ExtractAndProcessPriceData(processedData, recordCount, wbTarget)
     
     If Not isSuccess Or recordCount = 0 Then
-        MsgBox "Nenhum produto qualificado foi encontrado na matriz de pre√ßos para gera√ß√£o do cat√°logo.", _
+        MsgBox "Nenhum produto qualificado foi encontrado na matriz de preÁos para geraÁ„o do cat·logo.", _
                vbExclamation, APP_TITLE
         GoTo FinallyBlock
     End If
     
     ' --------------------------------------------------------------------------
-    ' 5. Renderiza√ß√£o do cat√°logo formatado para impress√£o (A4 / 1 p√°g largura)
+    ' 5. RenderizaÁ„o do cat·logo formatado para impress„o (A4 / 1 p·g largura)
     ' --------------------------------------------------------------------------
     Call RenderOutputCatalog(processedData, recordCount, wbTarget)
     
     elapsedTime = Round(Timer - startTime, 2)
     
-    MsgBox "Tabela de Pre√ßos gerada com sucesso!" & vbCrLf & vbCrLf & _
-           "‚Ä¢ Total de produtos ativos catalogados: " & recordCount & vbCrLf & _
-           "‚Ä¢ Tempo total de processamento: " & elapsedTime & " segundos", _
+    MsgBox "Tabela de PreÁos gerada com sucesso!" & vbCrLf & vbCrLf & _
+           "ï Total de produtos ativos catalogados: " & recordCount & vbCrLf & _
+           "ï Tempo total de processamento: " & elapsedTime & " segundos", _
            vbInformation, APP_TITLE
 
 FinallyBlock:
     ' --------------------------------------------------------------------------
-    ' 6. Restaura√ß√£o incondicional dos estados da aplica√ß√£o
+    ' 6. RestauraÁ„o incondicional dos estados da aplicaÁ„o
     ' --------------------------------------------------------------------------
     On Error Resume Next
     Application.ScreenUpdating = prevScreenUpdating
@@ -88,10 +88,10 @@ FinallyBlock:
     Exit Sub
 
 ErrorHandler:
-    MsgBox "Falha cr√≠tica durante a execu√ß√£o do motor de Tabela de Pre√ßos:" & vbCrLf & vbCrLf & _
-           "‚Ä¢ M√≥dulo/Origem: " & Err.Source & vbCrLf & _
-           "‚Ä¢ C√≥digo de Erro: " & Err.Number & vbCrLf & _
-           "‚Ä¢ Descri√ß√£o: " & Err.Description, _
+    MsgBox "Falha crÌtica durante a execuÁ„o do motor de Tabela de PreÁos:" & vbCrLf & vbCrLf & _
+           "ï MÛdulo/Origem: " & Err.Source & vbCrLf & _
+           "ï CÛdigo de Erro: " & Err.Number & vbCrLf & _
+           "ï DescriÁ„o: " & Err.Description, _
            vbCritical, APP_TITLE
     Resume FinallyBlock
 End Sub
