@@ -14,9 +14,11 @@ Attribute VB_Name = "mod_PricingLegacyAdapter"
 
 Option Explicit
 
-' Usado pela importação (mod_Inputs), que grava só Código e Preço: o cadastro
-' (Descrição, Qtd Padrão...) vem da base externa antes do cálculo.
+' Usado pela importação (mod_Inputs), que grava só Código e Preço: o Custo (do
+' pacote de custos ativo, spec-009) e o cadastro (Descrição, Qtd Padrão...) vêm
+' das bases externas antes do cálculo. Sem pacote ativo, a importação não calcula.
 Public Sub MotorPrecificacaoBidirecional(ByVal CfPcfic As ListObject, ByVal modoAlvo As String)
+    If Not Pricing_PreencherCustos() Then Exit Sub
     If Not Pricing_PreencherCadastro() Then Exit Sub
     Call MotorPrecificacaoMultidirecional(ModoDoTextoLegado(modoAlvo))
 End Sub
@@ -28,9 +30,11 @@ Public Sub AplicarIndicacaoVisual(ByVal CfPcfic As ListObject, ByVal modoAtual A
     End If
 End Sub
 
-' Botão Atualizar: relê cadastro e impostos da base (ignora o cache)
+' Botão Atualizar: relê custo (pacote ativo), cadastro e impostos das bases
+' (ignora o cache)
 Public Sub BotaoRefresh_AtualizarMotor()
     Call Pricing_LimparCacheImpostos
+    If Not Pricing_PreencherCustos() Then Exit Sub
     If Not Pricing_PreencherCadastro() Then Exit Sub
     Call Pricing_RecalcularTabela
 End Sub

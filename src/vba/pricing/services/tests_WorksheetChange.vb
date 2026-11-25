@@ -3,13 +3,15 @@
 ' Finalidade: Capturar a intenção do usuário e disparar o motor multidirecional:
 '   - edição em coluna-âncora (Margem, Preço Final Cx/Un, Preço Base Cx/Un)
 '     -> recalcula com aquela âncora;
-'   - código digitado/colado -> busca o cadastro do produto na base externa
-'     (ADO/SQL) e grava Descrição, Qtd Padrão, Grupo e Peso Kg como valores;
+'   - código digitado/colado -> grava o Custo do pacote de custos ativo
+'     (spec-009; sem pacote, o código é apagado e o usuário é orientado) e busca
+'     o cadastro do produto na base externa (ADO/SQL), gravando Descrição,
+'     Qtd Padrão, Grupo e Peso Kg como valores;
 '   - edição em insumo (Código, Qtd, Custo, Frete, Acordo, Comissão, Outros,
 '     Operação) -> recalcula mantendo a âncora atual (impostos não são mais
 '     fórmulas, então precisam ser recalculados pelo motor).
 ' Dependências: clsListState, mod_PricingSchema, mod_Multidirectional_Engine,
-'   mod_PricingCatalogo;
+'   mod_PricingCatalogo, mod_PricingPacoteCustos;
 '   Worksheet_Activate/Deactivate usam mod_Init (InicializarTodasTabelas,
 '   AlternarTela) do arquivo de produção.
 ' Instalação: substituir TODO o código do módulo da aba wsPcfic por este.
@@ -89,9 +91,11 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         modoAlvo = vbNullString
     End If
 
-    ' Código novo: cadastro da base externa antes do cálculo (Qtd Padrão entra
-    ' no preço unitário). Se a base não puder ser lida, não recalcula.
+    ' Código novo: primeiro o custo do pacote ativo (sem pacote a inclusão é
+    ' bloqueada), depois o cadastro da base externa antes do cálculo (Qtd Padrão
+    ' entra no preço unitário). Se uma base não puder ser lida, não recalcula.
     If linhasCodigo.Count > 0 Then
+        If Not Pricing_PreencherCustos(linhasCodigo, True) Then Exit Sub
         If Not Pricing_PreencherCadastro(linhasCodigo) Then Exit Sub
     End If
 

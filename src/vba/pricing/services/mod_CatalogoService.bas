@@ -5,6 +5,7 @@ Attribute VB_Name = "mod_CatalogoService"
 ' Finalidade: Regras de inclusão de produtos na precificação, sem tocar na
 '             planilha nem em formulários:
 '   - cruzamento Produto x Impostos (DTOs)
+'   - aplicação dos custos do pacote ativo (spec-009)
 '   - filtro de produtos já presentes na tabela
 '   - montagem da matriz (linhas x colunas da CfPcfic) pronta para injeção
 ' Quem chama (mod_PricingCatalogo) lê/escreve a planilha; este módulo só
@@ -25,12 +26,13 @@ End Function
 
 ' ==============================================================================
 ' Função: Catalogo_ColunasLote
-' Finalidade: Colunas gravadas na inclusão em lote: Código, cadastro e a
-'             Operação padrão (OPERACAO_PADRAO_LOTE).
+' Finalidade: Colunas gravadas na inclusão em lote: Código, cadastro, Custo
+'             (do pacote de custos ativo) e a Operação padrão
+'             (OPERACAO_PADRAO_LOTE).
 ' ==============================================================================
 Public Function Catalogo_ColunasLote() As Variant
     Catalogo_ColunasLote = Array(Col_Codigo(), Col_Descricao(), Col_QtdPadrao(), Col_Grupo(), _
-                                 Col_PesoKg(), Col_CodigoBarras(), Col_Operacao())
+                                 Col_PesoKg(), Col_CodigoBarras(), Col_Custo(), Col_Operacao())
 End Function
 
 ' ==============================================================================
@@ -87,6 +89,52 @@ Public Function Catalogo_CodigosSemImpostos(ByVal produtos As Collection) As Col
 End Function
 
 ' ==============================================================================
+' Função: Catalogo_ChavesDosProdutos
+' Finalidade: Lista das chaves (SKU) dos produtos, para consultar os custos.
+' ==============================================================================
+Public Function Catalogo_ChavesDosProdutos(ByVal produtos As Collection) As Collection
+    Dim dto As clsProdutoDTO
+    Dim lista As New Collection
+    For Each dto In produtos
+        If Len(dto.Chave) > 0 Then lista.Add dto.Chave
+    Next dto
+    Set Catalogo_ChavesDosProdutos = lista
+End Function
+
+' ==============================================================================
+' Procedimento: Catalogo_AplicarCustos
+' Finalidade: Ligar cada produto ao custo do pacote ativo (ou deixá-lo sem custo).
+' Parâmetros:
+'   - custos: Dictionary chave -> Double (BuscarCustosPorPacote); pode ser Nothing
+' ==============================================================================
+Public Sub Catalogo_AplicarCustos(ByVal produtos As Collection, ByVal custos As Object)
+    Dim dto As clsProdutoDTO
+    For Each dto In produtos
+        dto.TemCusto = False
+        dto.Custo = 0#
+        If Not custos Is Nothing Then
+            If custos.Exists(dto.Chave) Then
+                dto.Custo = CDbl(custos(dto.Chave))
+                dto.TemCusto = True
+            End If
+        End If
+    Next dto
+End Sub
+
+' ==============================================================================
+' Função: Catalogo_CodigosSemCusto
+' Finalidade: Lista dos códigos sem custo no pacote (para avisar o usuário).
+' ==============================================================================
+Public Function Catalogo_CodigosSemCusto(ByVal produtos As Collection) As Collection
+    Dim dto As clsProdutoDTO
+    Dim lista As New Collection
+    For Each dto In produtos
+        If Not dto.TemCusto Then lista.Add dto.Chave
+    Next dto
+    Set Catalogo_CodigosSemCusto = lista
+End Function
+
+' ==============================================================================
 ' Função: Catalogo_ValorDaColuna
 ' Finalidade: Valor que um produto grava numa coluna da CfPcfic.
 ' Retorno: False se a coluna não for cadastral (não deve ser tocada).
@@ -101,6 +149,8 @@ Public Function Catalogo_ValorDaColuna(ByVal dto As clsProdutoDTO, ByVal nomeCol
         Case Col_Grupo():         outValor = dto.Grupo
         Case Col_PesoKg():        outValor = dto.PesoKg
         Case Col_CodigoBarras():  outValor = dto.CodigoBarras
+        Case Col_Custo()                                  ' só gravada no lote
+            If dto.TemCusto Then outValor = dto.Custo Else outValor = Empty
         Case Col_Operacao():      outValor = OPERACAO_PADRAO_LOTE   ' só usada no lote
         Case Else
             outValor = Empty

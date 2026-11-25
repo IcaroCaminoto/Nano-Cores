@@ -21,6 +21,7 @@ Private Const AD_CMD_TEXT As Long = 1
 Private Const AD_VAR_WCHAR As Long = 202
 Private Const AD_PARAM_INPUT As Long = 1
 Private Const AD_STATE_OPEN As Long = 1
+Private Const AD_SCHEMA_TABLES As Long = 20
 
 ' ==============================================================================
 ' Função: Ado_AbrirConexaoExcel
@@ -31,7 +32,7 @@ Public Function Ado_AbrirConexaoExcel(ByVal caminhoArquivo As String) As Object
 
     If Not Util_ArquivoExiste(caminhoArquivo) Then
         Err.Raise ERR_ADO_ARQUIVO_AUSENTE, "mod_AdoExcel", _
-                  "Base n" & ChrW(227) & "o encontrada: " & caminhoArquivo
+                  "Base n" & ChrW(227) & "o encontrada (verifique a conex" & ChrW(227) & "o com a rede e a pasta do banco): " & caminhoArquivo
     End If
 
     Set conn = CreateObject("ADODB.Connection")
@@ -130,6 +131,68 @@ Falha:
     End If
     On Error GoTo 0
     Err.Raise errNum, "mod_AdoExcel", errDesc & vbCrLf & "SQL: " & sql
+End Function
+
+' ==============================================================================
+' Função: Ado_ListarAbas
+' Finalidade: Nomes das abas ("planilhas") de um .xlsx já conectado, lidos do
+'             catálogo do provedor OLEDB (OpenSchema / adSchemaTables).
+'             Não abre o Excel nem o arquivo como pasta de trabalho.
+' Retorno: Collection de String com os nomes limpos (sem aspas e sem "$").
+' ==============================================================================
+Public Function Ado_ListarAbas(ByVal conn As Object) As Collection
+    Dim rs As Object
+    Dim abas As New Collection
+    Dim nome As String
+    Dim errNum As Long, errDesc As String
+
+    On Error GoTo Falha
+    Set rs = conn.OpenSchema(AD_SCHEMA_TABLES)
+    Do While Not rs.EOF
+        If StrComp(Util_Texto(rs.Fields("TABLE_TYPE").Value), "TABLE", vbTextCompare) = 0 Then
+            nome = Ado_NomeDaAba(Util_Texto(rs.Fields("TABLE_NAME").Value))
+            If Len(nome) > 0 Then abas.Add nome
+        End If
+        rs.MoveNext
+    Loop
+    rs.Close
+    Set rs = Nothing
+    Set Ado_ListarAbas = abas
+    Exit Function
+
+Falha:
+    errNum = Err.Number: errDesc = Err.Description
+    On Error Resume Next
+    If Not rs Is Nothing Then
+        If rs.State = AD_STATE_OPEN Then rs.Close
+    End If
+    On Error GoTo 0
+    Err.Raise errNum, "mod_AdoExcel", errDesc
+End Function
+
+' ==============================================================================
+' Função: Ado_NomeDaAba
+' Finalidade: Converter TABLE_NAME do catálogo OLEDB no nome da aba.
+'   "Custo_MM_90D$"      -> Custo_MM_90D
+'   "'Minha Aba$'"       -> Minha Aba      (aspas simples removidas)
+'   "'Joe''s$'"          -> Joe's          (aspa duplicada vira simples)
+'   "Aba$Print_Area", "Tabela1", "_xlnm#_FilterDatabase" -> "" (não são abas)
+' Regra: só é aba o nome que termina em "$" depois de tirar as aspas.
+' ==============================================================================
+Public Function Ado_NomeDaAba(ByVal nomeTabela As String) As String
+    Dim s As String
+
+    s = Trim$(nomeTabela)
+    If Len(s) >= 2 Then
+        If Left$(s, 1) = "'" And Right$(s, 1) = "'" Then
+            s = Mid$(s, 2, Len(s) - 2)
+            s = Replace(s, "''", "'")
+        End If
+    End If
+
+    If Len(s) < 2 Then Exit Function
+    If Right$(s, 1) <> "$" Then Exit Function
+    Ado_NomeDaAba = Left$(s, Len(s) - 1)
 End Function
 
 ' Nome de campo entre colchetes: [Grupo de Produto]

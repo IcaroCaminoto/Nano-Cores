@@ -47,6 +47,45 @@ Public Function Util_NumeroDaBase(ByVal valor As Variant) As Double
     End If
 End Function
 
+' True se o valor vindo da base É um número (nulo, vazio, erro e texto como
+' "abc" ou "R$ 5" não são). Aceita "12.5" e "12,5". Usado para decidir se um
+' custo/valor da base é válido antes de converter com Util_NumeroDaBase.
+Public Function Util_EhNumeroDaBase(ByVal valor As Variant) As Boolean
+    Dim s As String
+    Dim c As String
+    Dim inicio As Long, i As Long
+    Dim pontos As Long, digitos As Long
+
+    If IsError(valor) Or IsEmpty(valor) Or IsNull(valor) Then Exit Function
+    If IsObject(valor) Then Exit Function
+
+    If VarType(valor) <> vbString Then
+        Util_EhNumeroDaBase = IsNumeric(valor)
+        Exit Function
+    End If
+
+    s = Trim$(valor)
+    If Len(s) = 0 Then Exit Function
+    If InStr(s, ",") > 0 And InStr(s, ".") = 0 Then s = Replace(s, ",", ".")
+
+    inicio = 1
+    c = Left$(s, 1)
+    If c = "-" Or c = "+" Then inicio = 2
+
+    For i = inicio To Len(s)
+        c = Mid$(s, i, 1)
+        If c = "." Then
+            pontos = pontos + 1
+            If pontos > 1 Then Exit Function
+        ElseIf c >= "0" And c <= "9" Then
+            digitos = digitos + 1
+        Else
+            Exit Function
+        End If
+    Next i
+    Util_EhNumeroDaBase = (digitos > 0)
+End Function
+
 ' Alíquota em fração; valores > 1 são pontos percentuais (7,6 -> 0,076)
 Public Function Util_NormalizarAliquota(ByVal valor As Variant) As Double
     Dim v As Double

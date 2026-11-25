@@ -15,6 +15,8 @@ Attribute VB_Exposed = False
 '   Codigo        -> valor original da base (número), gravado na CfPcfic
 '   Chave         -> Codigo normalizado para comparação (Util_ChaveSKU)
 '   Impostos      -> clsAliquotasDTO ou Nothing (produto sem imposto na base)
+'   Custo         -> custo unitário do pacote de custos ativo (spec-009);
+'                    só vale quando TemCusto = True
 ' ==============================================================================
 Option Explicit
 
@@ -27,6 +29,8 @@ Public Grupo As String
 Public PesoKg As Variant
 Public Ativo As Boolean
 Public Impostos As clsAliquotasDTO
+Public Custo As Double
+Public TemCusto As Boolean
 
 Public Property Get TemImpostos() As Boolean
     TemImpostos = Not (Impostos Is Nothing)

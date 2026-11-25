@@ -6,6 +6,8 @@ Attribute VB_Name = "mod_PricingSetup"
 '   - Setup_RegistrarBotaoGrupo: cria a linha "Adicionar Grupo de Produtos" na
 '     TabelaRotinas (aba sys_config). O painel do botão Opções
 '     (frmPainelCerulean) gera o botão sozinho a partir dessa tabela.
+'   - Setup_RegistrarBotaoPacoteCustos: idem para "Selecionar Pacote de Custos"
+'     (spec-009).
 '   - Setup_MigrarParaBasesExternas: troca as fórmulas da CfPcfic por valores
 '     vindos das bases externas e exclui as abas locais "Produtos" (dProdutos)
 '     e "Impostos" (CfImpostos + CfExcecoesImpostos), com verificações antes.
@@ -22,6 +24,21 @@ Private Const ABA_LEGADA_IMPOSTOS As String = "Impostos"
 ' Procedimento: Setup_RegistrarBotaoGrupo
 ' ==============================================================================
 Public Sub Setup_RegistrarBotaoGrupo()
+    Call RegistrarBotaoNoPainel("Adicionar Grupo de Produtos", MACRO_ADICIONAR_GRUPO)
+End Sub
+
+' ==============================================================================
+' Procedimento: Setup_RegistrarBotaoPacoteCustos
+' ==============================================================================
+Public Sub Setup_RegistrarBotaoPacoteCustos()
+    Call RegistrarBotaoNoPainel("Selecionar Pacote de Custos", MACRO_SELECIONAR_PACOTE)
+End Sub
+
+' ==============================================================================
+' Procedimento Privado: RegistrarBotaoNoPainel
+' Finalidade: Acrescentar (uma única vez) uma linha ativa na TabelaRotinas.
+' ==============================================================================
+Private Sub RegistrarBotaoNoPainel(ByVal nomeBotao As String, ByVal nomeMacro As String)
     Dim lo As ListObject
     Dim nova As ListRow
     Dim arr As Variant
@@ -54,8 +71,9 @@ Public Sub Setup_RegistrarBotaoGrupo()
             arr = umaCelula
         End If
         For i = 1 To UBound(arr, 1)
-            If StrComp(Util_Texto(arr(i, idxMacro)), MACRO_ADICIONAR_GRUPO, vbTextCompare) = 0 Then
-                MsgBox "O bot" & ChrW(227) & "o j" & ChrW(225) & " est" & ChrW(225) & " cadastrado na " & TABELA_ROTINAS & ".", vbInformation
+            If StrComp(Util_Texto(arr(i, idxMacro)), nomeMacro, vbTextCompare) = 0 Then
+                MsgBox "O bot" & ChrW(227) & "o """ & nomeBotao & """ j" & ChrW(225) & " est" & ChrW(225) & _
+                       " cadastrado na " & TABELA_ROTINAS & ".", vbInformation
                 Exit Sub
             End If
             If idxID > 0 Then
@@ -66,11 +84,12 @@ Public Sub Setup_RegistrarBotaoGrupo()
 
     Set nova = lo.ListRows.Add
     If idxID > 0 Then nova.Range(1, idxID).Value2 = maiorID + 1
-    nova.Range(1, idxNome).Value2 = "Adicionar Grupo de Produtos"
-    nova.Range(1, idxMacro).Value2 = MACRO_ADICIONAR_GRUPO
+    nova.Range(1, idxNome).Value2 = nomeBotao
+    nova.Range(1, idxMacro).Value2 = nomeMacro
     nova.Range(1, idxStatus).Value2 = "Ativo"
 
-    MsgBox "Bot" & ChrW(227) & "o cadastrado. Feche e abra o painel (Op" & ChrW(231) & ChrW(245) & "es) para v" & ChrW(234) & "-lo.", vbInformation
+    MsgBox "Bot" & ChrW(227) & "o """ & nomeBotao & """ cadastrado. Feche e abra o painel (Op" & ChrW(231) & ChrW(245) & _
+           "es) para v" & ChrW(234) & "-lo.", vbInformation
 End Sub
 
 ' ==============================================================================

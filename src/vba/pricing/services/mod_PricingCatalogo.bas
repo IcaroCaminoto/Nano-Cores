@@ -54,7 +54,7 @@ Public Function Pricing_PreencherCadastro(Optional ByVal linhas As Collection, _
 
     idxCod = estado.IndiceColuna(Col_Codigo())
     If idxCod = 0 Then
-        MsgBox "A coluna """ & Col_Codigo() & """ não existe na tabela " & TABELA_PRECIFICACAO & ".", vbCritical
+        MsgBox "A coluna """ & Col_Codigo() & """ n" & ChrW(227) & "o existe na tabela " & TABELA_PRECIFICACAO & ".", vbCritical
         Exit Function
     End If
 
@@ -211,9 +211,11 @@ End Sub
 '   1. Produtos do grupo (SQL)            -> mod_ProdutoRepository
 '   2. Impostos da UF (SQL, com cache)    -> Pricing_ObterImpostosDaUF
 '   3. Cruzamento e filtro de repetidos   -> mod_CatalogoService
+'   3b. Custos do pacote ativo (spec-009) -> mod_Pricing_CostPackageService
+'      (sem pacote ativo, ou se a consulta falhar, nada é inserido)
 '   4. Linhas novas + gravação em bloco   -> clsListState
-'      (Código, cadastro e Operação padrão OPERACAO_PADRAO_LOTE; uma linha
-'       vazia reaproveitada mantém a Operação que já tiver)
+'      (Código, cadastro, Custo e Operação padrão OPERACAO_PADRAO_LOTE; uma
+'       linha vazia reaproveitada mantém a Operação que já tiver)
 '   5. Impostos e preços                  -> Pricing_RecalcularTabela
 ' ==============================================================================
 Public Sub Pricing_AdicionarGrupoProdutos(ByVal grupo As String)
@@ -222,6 +224,10 @@ Public Sub Pricing_AdicionarGrupoProdutos(ByVal grupo As String)
     Dim produtos As Collection
     Dim novos As Collection
     Dim semImpostos As Collection
+    Dim semCusto As Collection
+    Dim alertasCusto As Collection
+    Dim custos As Object
+    Dim pacote As String
     Dim impostosUF As Object
     Dim siglaUF As String
     Dim repetidos As Long
@@ -239,6 +245,10 @@ Public Sub Pricing_AdicionarGrupoProdutos(ByVal grupo As String)
         MsgBox "Tabela de precifica" & ChrW(231) & ChrW(227) & "o """ & TABELA_PRECIFICACAO & """ n" & ChrW(227) & "o encontrada.", vbCritical
         Exit Sub
     End If
+
+    ' ---- 0. Pacote de custos ativo: sem ele nada é inserido ---------------------
+    pacote = Pricing_ObterPacoteOuAvisar()
+    If Len(pacote) = 0 Then Exit Sub
 
     ' ---- 1. Produtos do grupo -------------------------------------------------
     caminhoDb = Config_ResolveDatabaseFile(DB_FILE_PRODUTOS)
@@ -263,6 +273,12 @@ Public Sub Pricing_AdicionarGrupoProdutos(ByVal grupo As String)
         Exit Sub
     End If
     Set semImpostos = Catalogo_CodigosSemImpostos(novos)
+
+    ' ---- 3b. Custos do pacote ativo (consulta antes de escrever na tabela) ------
+    Set custos = Pricing_ObterCustosDoPacote(pacote, Catalogo_ChavesDosProdutos(novos), alertasCusto)
+    If custos Is Nothing Then Exit Sub
+    Call Catalogo_AplicarCustos(novos, custos)
+    Set semCusto = Catalogo_CodigosSemCusto(novos)
 
     ' ---- 4. Linhas novas e gravação em bloco -----------------------------------
     prevEvents = Application.EnableEvents
@@ -313,7 +329,15 @@ Public Sub Pricing_AdicionarGrupoProdutos(ByVal grupo As String)
         resumo = resumo & vbCrLf & vbCrLf & "Sem impostos na base para a UF " & siglaUF & ":" & vbCrLf & _
                  Util_JuntarLista(semImpostos)
     End If
-    MsgBox resumo, IIf(semImpostos.Count > 0, vbExclamation, vbInformation)
+    If semCusto.Count > 0 Then
+        resumo = resumo & vbCrLf & vbCrLf & "Sem custo no pacote " & pacote & ":" & vbCrLf & _
+                 Util_JuntarLista(semCusto)
+    End If
+    If alertasCusto.Count > 0 Then
+        resumo = resumo & vbCrLf & vbCrLf & "Custos inv" & ChrW(225) & "lidos na base (assumidos 0,00):" & vbCrLf & _
+                 Util_JuntarLista(alertasCusto)
+    End If
+    'MsgBox resumo, IIf(semImpostos.Count > 0, vbExclamation, vbInformation) <- ACIONA NOTIFICAÇÃO DE PRODUTOS ADICIONADOS
     Exit Sub
 
 ErroBase:

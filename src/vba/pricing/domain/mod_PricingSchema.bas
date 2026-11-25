@@ -68,6 +68,23 @@ Public Const DBIMP_UF As String = "uf_destino"
 Public Const DBIMP_ICMS As String = "aliquota_icms"
 Public Const DBIMP_ST As String = "aliquota_st"
 
+' ------------------------------------------------------------------------------
+' Base de custos (Cerulean_DB_Custos.xlsx): UMA ABA POR FECHAMENTO ("pacote").
+'   Custo_MM_*  -> media movel (spec-003)        custo em Custo_Medio_Familia
+'   Custo_EX_*  -> engenharia / BOM (spec-002)   custo em Custo_Final_Engenharia
+' A coluna fisica de custo depende do prefixo da aba; a consulta a devolve
+' sempre com o apelido Custo_Resolvido (ver mod_Pricing_CostPackageService).
+' ------------------------------------------------------------------------------
+Public Const DB_ABA_CUSTOS_PREFIXO_MM As String = "Custo_MM_"
+Public Const DB_ABA_CUSTOS_PREFIXO_EX As String = "Custo_EX_"
+Public Const DBCUS_COD_PRODUTO As String = "Cod_Produto"
+Public Const DBCUS_CUSTO_MM As String = "Custo_Medio_Familia"
+Public Const DBCUS_CUSTO_EX As String = "Custo_Final_Engenharia"
+Public Const DBCUS_CUSTO_RESOLVIDO As String = "Custo_Resolvido"
+
+' Cabeçalho de impressão da aba de precificação: "Custos: [pacote]"
+Public Const CABECALHO_CUSTOS_PREFIXO As String = "Custos: "
+
 Public Function Tabela_Operacoes() As String
     Tabela_Operacoes = "CfOpera" & ChrW(231) & ChrW(245) & "es"           ' CfOperações
 End Function
