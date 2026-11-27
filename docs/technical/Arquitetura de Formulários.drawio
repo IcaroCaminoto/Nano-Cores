@@ -1,0 +1,37 @@
+<mxfile host="Electron">
+  <diagram name="Página-1" id="Ioc6n4teUfKWS-1i4DxT">
+    <mxGraphModel dx="1203" dy="1829" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-4" edge="1" parent="1" source="iNjBHWCWNzWEOPh0PC5H-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="iNjBHWCWNzWEOPh0PC5H-6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="340.1113345840654" y="144" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-5" edge="1" parent="1" source="iNjBHWCWNzWEOPh0PC5H-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="iNjBHWCWNzWEOPh0PC5H-8">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="503" y="144" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;sketch=1;curveFitting=1;jiggle=2;strokeColor=light-dark(#000000,#99004D);" value="Nano Cores Engine (MultiPage Form)" vertex="1">
+          <mxGeometry height="194" width="194" x="317" y="-102" as="geometry" />
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-6" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=50;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;arcSize=4;whiteSpace=wrap;html=1;strokeColor=light-dark(#000000,#CC0066);sketch=1;curveFitting=1;jiggle=2;" value="Cost Module (Page)" vertex="1">
+          <mxGeometry height="120" width="271" x="95" y="153" as="geometry">
+            <mxRectangle height="50" width="160" x="95" y="153" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-7" parent="iNjBHWCWNzWEOPh0PC5H-6" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="&lt;span style=&quot;color: light-dark(rgb(220, 189, 251), rgb(255, 255, 255));&quot;&gt;+&lt;span style=&quot;font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; white-space: pre;&quot;&gt;ExecuteCostClosingPipeline&lt;/span&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; white-space: pre; color: light-dark(rgb(220, 189, 251), rgb(255, 255, 255));&quot;&gt;+Combobox1: Span(actual, 30, 60, 90)&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="70" width="271" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-8" parent="1" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=50;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;arcSize=4;whiteSpace=wrap;html=1;strokeColor=light-dark(#000000,#CC0066);sketch=1;curveFitting=1;jiggle=2;" value="Price Module (Page)" vertex="1">
+          <mxGeometry height="120" width="285" x="454" y="149" as="geometry" />
+        </mxCell>
+        <mxCell id="iNjBHWCWNzWEOPh0PC5H-9" parent="iNjBHWCWNzWEOPh0PC5H-8" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;whiteSpace=wrap;" value="+CreateNewInstanceFromA&lt;div&gt;+CreatreBlankInstance&lt;/div&gt;&lt;div&gt;+ImportFromPreExistingInstance&lt;/div&gt;&lt;div&gt;+GeneratePriceList&lt;/div&gt;" vertex="1">
+          <mxGeometry height="70" width="285" y="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
